@@ -1,0 +1,26 @@
+EXP_DIR: kitti
+IS_RPN: False
+IS_MULTISCALE: True
+IS_EXTRAPOLATING: True
+REGION_PROPOSAL: 'RPN'
+TRAIN:
+  LEARNING_RATE: 0.001
+  MOMENTUM: 0.9
+  GAMMA: 0.1
+  STEPSIZE: 30000
+  SCALES_BASE: !!python/tuple [1.0, 2.0, 3.0, 4.0]
+  NUM_PER_OCTAVE: 4
+  IMS_PER_BATCH: 2
+  FG_FRACTION: 0.25
+  FG_THRESH: !!python/tuple [0.7, 0.5, 0.5]
+  BG_THRESH_HI: !!python/tuple [0.7, 0.5, 0.5]
+  BG_THRESH_LO: !!python/tuple [0.1, 0.1, 0.1]
+  BBOX_THRESH: !!python/tuple [0.7, 0.5, 0.5]
+  ROI_THRESHOLD: 0.01
+  SNAPSHOT_ITERS: 10000
+  SNAPSHOT_INFIX: kitti
+  SNAPSHOT_PREFIX: caffenet_fast_rcnn
+TEST:
+  SCALES_BASE: !!python/tuple [1.0, 2.0, 3.0, 4.0]
+  NUM_PER_OCTAVE: 4
+  NMS: 0.5
