@@ -49,3 +49,8 @@ cd $FRCN_ROOT
 ```
 The demo performs detection using a VGG16 network trained for detection on PASCAL VOC 2007.
 
+###References
+[Faster R-CNN caffe version](https://github.com/rbgirshick/py-faster-rcnn)
+
+[A tensorflow implementation of SubCNN (working progress)](https://github.com/yuxng/SubCNN_TF)
+
