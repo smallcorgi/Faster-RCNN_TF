@@ -11,7 +11,6 @@ anchor_scales = [8, 16, 32]
 class VGGnet_train(Network):
     def __init__(self, trainable=True):
         self.inputs = []
-        #self.data = tf.placeholder(tf.float32, shape=[None, None, None, 3])
         self.data = tf.placeholder(tf.float32, shape=[None, None, None, 3])
         self.im_info = tf.placeholder(tf.float32, shape=[None, 3])
         self.gt_boxes = tf.placeholder(tf.float32, shape=[None, 5])
@@ -61,7 +60,7 @@ class VGGnet_train(Network):
              .reshape_layer(len(anchor_scales)*3*2,name = 'rpn_cls_prob_reshape'))
 
         (self.feed('rpn_cls_prob_reshape','rpn_bbox_pred','im_info')
-             .proposal_layer(_feat_stride, anchor_scales, name = 'rpn_rois'))
+             .proposal_layer(_feat_stride, anchor_scales, 'TRAIN',name = 'rpn_rois'))
 
         (self.feed('rpn_rois','gt_boxes')
              .proposal_target_layer(n_classes,name = 'roi-data'))

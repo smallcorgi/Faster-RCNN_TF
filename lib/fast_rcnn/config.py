@@ -43,15 +43,15 @@ __C.IS_MULTISCALE = False
 
 # Scales to compute real features
 #__C.TRAIN.SCALES_BASE = (0.25, 0.5, 1.0, 2.0, 3.0)
-__C.TRAIN.SCALES_BASE = (1.0,)
+#__C.TRAIN.SCALES_BASE = (1.0,)
 
 # parameters for ROI generating
-__C.TRAIN.SPATIAL_SCALE = 0.0625
+#__C.TRAIN.SPATIAL_SCALE = 0.0625
 #__C.TRAIN.KERNEL_SIZE = 5
 
 # Aspect ratio to use during training
 #__C.TRAIN.ASPECTS = (1, 0.75, 0.5, 0.25)
-__C.TRAIN.ASPECTS= (1,)
+#__C.TRAIN.ASPECTS= (1,)
 
 
 # Scales to use during training (can list multiple scales)

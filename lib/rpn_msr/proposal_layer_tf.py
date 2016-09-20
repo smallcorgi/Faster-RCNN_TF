@@ -19,7 +19,7 @@ DEBUG = False
 Outputs object detection proposals by applying estimated bounding-box
 transformations to a set of regular boxes (called "anchors").
 """
-def proposal_layer(rpn_cls_prob_reshape,rpn_bbox_pred,im_info,_feat_stride = [16,],anchor_scales = [8, 16, 32]):
+def proposal_layer(rpn_cls_prob_reshape,rpn_bbox_pred,im_info,cfg_key,_feat_stride = [16,],anchor_scales = [8, 16, 32]):
     # Algorithm:
     #
     # for each (H, W) location i
@@ -44,7 +44,7 @@ def proposal_layer(rpn_cls_prob_reshape,rpn_bbox_pred,im_info,_feat_stride = [16
     assert rpn_cls_prob_reshape.shape[0] == 1, \
         'Only single item batches are supported'
     # cfg_key = str(self.phase) # either 'TRAIN' or 'TEST'
-    cfg_key = 'TEST'
+    #cfg_key = 'TEST'
     pre_nms_topN  = cfg[cfg_key].RPN_PRE_NMS_TOP_N
     post_nms_topN = cfg[cfg_key].RPN_POST_NMS_TOP_N
     nms_thresh    = cfg[cfg_key].RPN_NMS_THRESH

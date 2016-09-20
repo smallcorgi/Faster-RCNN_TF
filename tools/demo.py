@@ -120,7 +120,7 @@ if __name__ == '__main__':
     print '\n\nLoaded network {:s}'.format(args.model)
 
     # Warmup on a dummy image
-    im = 128 * np.ones((720, 1280, 3), dtype=np.uint8)
+    im = 128 * np.ones((300, 300, 3), dtype=np.uint8)
     for i in xrange(2):
         _, _= im_detect(sess, net, im)
 

@@ -17,7 +17,6 @@ import os
 import tensorflow as tf
 import sys
 
-import pdb
 
 class SolverWrapper(object):
     """A simple wrapper around Caffe's solver.
@@ -35,16 +34,11 @@ class SolverWrapper(object):
 
         print 'Computing bounding-box regression targets...'
         if cfg.TRAIN.BBOX_REG:
-            #if cfg.TRAIN.HAS_RPN:
-            #    gdl_roidb.prepare_roidb(imdb)
-            #    self.bbox_means, self.bbox_stds = gdl_roidb.add_bbox_regression_targets(roidb)
-            #else:
             self.bbox_means, self.bbox_stds = rdl_roidb.add_bbox_regression_targets(roidb)
         print 'done'
 
         # For checkpoint
         self.saver = tf.train.Saver(max_to_keep=100)
-
 
     def snapshot(self, sess, iter):
         """Take a snapshot of the network after unnormalizing the learned
@@ -98,23 +92,17 @@ class SolverWrapper(object):
         rpn_label = tf.reshape(tf.gather(rpn_label,tf.where(tf.not_equal(rpn_label,-1))),[-1])
         rpn_cross_entropy = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(rpn_cls_score, rpn_label))
 
+
         # bounding box regression L1 loss
         rpn_bbox_pred = self.net.get_output('rpn_bbox_pred')
         rpn_bbox_targets = tf.transpose(self.net.get_output('rpn-data')[1],[0,2,3,1])
-        #rpn_bbox_weights = tf.transpose(self.net.get_output('rpn-data')[2],[0,2,3,1])
         rpn_bbox_inside_weights = tf.transpose(self.net.get_output('rpn-data')[2],[0,2,3,1])
         rpn_bbox_outside_weights = tf.transpose(self.net.get_output('rpn-data')[3],[0,2,3,1])
-        #rpn_loss_box = tf.reduce_mean(tf.reduce_sum(tf.mul(rpn_bbox_weights, tf.abs(tf.sub(rpn_bbox_pred, rpn_bbox_targets))), reduction_indices=[1,2]))
         smoothL1_sign = tf.cast(tf.less(tf.abs(tf.sub(rpn_bbox_pred, rpn_bbox_targets)),1),tf.float32)
-        rpn_loss_box = tf.reduce_mean(tf.reduce_sum(tf.mul(rpn_bbox_outside_weights,tf.add(
+        rpn_loss_box = tf.mul(tf.reduce_mean(tf.reduce_sum(tf.mul(rpn_bbox_outside_weights,tf.add(
                        tf.mul(tf.mul(tf.pow(tf.mul(rpn_bbox_inside_weights, tf.sub(rpn_bbox_pred, rpn_bbox_targets))*3,2),0.5),smoothL1_sign),
-                       tf.mul(tf.sub(tf.abs(tf.sub(rpn_bbox_pred, rpn_bbox_targets)),0.5/9.0),tf.abs(smoothL1_sign-1)))), reduction_indices=[1,2]))
-        #rpn_loss_box = tf.reduce_mean(tf.reduce_sum(tf.mul(rpn_bbox_outside_weights,tf.add(
-        #               tf.mul(tf.mul(tf.pow(tf.mul(rpn_bbox_inside_weights, tf.sub(rpn_bbox_pred, rpn_bbox_targets))*3,2),0.5),smoothL1_sign),
-        #               tf.mul(tf.sub(tf.abs(tf.sub(rpn_bbox_pred, rpn_bbox_targets)),0.5/9.0),tf.abs(smoothL1_sign-1)))), reduction_indices=[1]))
-        #rpn_loss_box = tf.reduce_mean(tf.reduce_sum(tf.mul(rpn_bbox_weights, tf.abs(tf.sub(rpn_bbox_pred, rpn_bbox_targets))), reduction_indices=[3]))
-        #rpn_loss_box = tf.reduce_mean(tf.reduce_sum(tf.mul(rpn_bbox_outside_weights,tf.mul(tf.pow(tf.mul(rpn_bbox_inside_weights, tf.sub(rpn_bbox_pred, rpn_bbox_targets)),2),0.5*9)), reduction_indices=[2,3]))
-
+                       tf.mul(tf.sub(tf.abs(tf.sub(rpn_bbox_pred, rpn_bbox_targets)),0.5/9.0),tf.abs(smoothL1_sign-1)))), reduction_indices=[1,2])),10)
+ 
         # R-CNN
         # classification loss
         cls_score = self.net.get_output('cls_score')
@@ -126,16 +114,13 @@ class SolverWrapper(object):
         # bounding box regression L1 loss
         bbox_pred = self.net.get_output('bbox_pred')
         bbox_targets = self.net.get_output('roi-data')[2]
-        #bbox_weights = self.net.get_output('roi-data')[4]
         bbox_inside_weights = self.net.get_output('roi-data')[3]
         bbox_outside_weights = self.net.get_output('roi-data')[4]
-        #bbox_targets = tf.placeholder(tf.float32, shape=[None, 4 * self.imdb.num_classes])
-        #bbox_weights = tf.placeholder(tf.float32, shape=[None, 4 * self.imdb.num_classes])
         loss_box = tf.reduce_mean(tf.reduce_sum(tf.mul(bbox_outside_weights,tf.mul(bbox_inside_weights, tf.abs(tf.sub(bbox_pred, bbox_targets)))), reduction_indices=[1]))
 
 
         loss = cross_entropy + loss_box + rpn_cross_entropy + rpn_loss_box
-        #loss = cross_entropy + loss_box + rpn_loss_box
+
         # optimizer
         lr = tf.Variable(cfg.TRAIN.LEARNING_RATE, trainable=False)
         momentum = cfg.TRAIN.MOMENTUM
@@ -161,21 +146,13 @@ class SolverWrapper(object):
             blobs = data_layer.forward()
 
             # Make one SGD update
-            #feed_dict={self.net.data: blobs['data'], self.net.rois: blobs['rois'], self.net.keep_prob: 0.5, \
-            #               label: blobs['label'], bbox_targets: blobs['bbox_targets'], bbox_weights: blobs['bbox_inside_weights']}
             feed_dict={self.net.data: blobs['data'], self.net.im_info: blobs['im_info'], self.net.keep_prob: 0.5, \
                            self.net.gt_boxes: blobs['gt_boxes']}
             timer.tic()
-            #pdb.set_trace()
+
             rpn_loss_cls_value, rpn_loss_box_value,loss_cls_value, loss_box_value, _ = sess.run([rpn_cross_entropy, rpn_loss_box, cross_entropy, loss_box, train_op], feed_dict=feed_dict)
-            #rpn_loss_box_value,loss_cls_value, loss_box_value, _ = sess.run([rpn_loss_box, cross_entropy, loss_box, train_op], feed_dict=feed_dict)
 
             timer.toc()
-            #print 'iter: %d / %d, rpn_loss_cls: %.4f, rpn_loss_box: %.4f' %\
-            #        (iter+1, max_iters, rpn_loss_cls_value, rpn_loss_box_value)
-
-            #print 'loss_cls: %.4f, loss_box: %.4f, lr: %f' %\
-            #        (loss_cls_value, loss_box_value, lr.eval())
 
             if (iter+1) % (cfg.TRAIN.DISPLAY) == 0:
                 print 'iter: %d / %d,total loss: %.4f, rpn_loss_cls: %.4f, rpn_loss_box: %.4f, loss_cls: %.4f, loss_box: %.4f, lr: %f'%\
@@ -227,7 +204,6 @@ def train_net(network, imdb, roidb, output_dir, pretrained_model=None, max_iters
 
     with tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:
         sw = SolverWrapper(sess, network, imdb, roidb, output_dir, pretrained_model=pretrained_model)
-
         print 'Solving...'
         sw.train_model(sess, max_iters)
         print 'done solving'

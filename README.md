@@ -22,17 +22,7 @@ For details about R-CNN please refer to the paper [Faster R-CNN: Towards Real-Ti
   git clone --recursive https://github.com/smallcorgi/Faster-RCNN_TF.git
   ```
 
-2. We'll call the directory that you cloned Faster R-CNN into `FRCN_ROOT`
-
-   *Ignore notes 1 and 2 if you followed step 1 above.*
-
-   **Note 1:** If you didn't clone Faster R-CNN with the `--recursive` flag, then you'll need to manually clone the `caffe-fast-rcnn` submodule:
-    ```Shell
-    git submodule update --init --recursive
-    ```
-    **Note 2:** The `caffe-fast-rcnn` submodule needs to be on the `faster-rcnn` branch (or equivalent detached state). This will happen automatically *if you followed step 1 instructions*.
-
-3. Build the Cython modules
+2. Build the Cython modules
     ```Shell
     cd $FRCN_ROOT/lib
     sh make.sh
@@ -49,8 +39,37 @@ cd $FRCN_ROOT
 ```
 The demo performs detection using a VGG16 network trained for detection on PASCAL VOC 2007.
 
-###References
-[Faster R-CNN caffe version](https://github.com/rbgirshick/py-faster-rcnn)
+### Download pre-trained ImageNet models
 
-[A tensorflow implementation of SubCNN (working progress)](https://github.com/yuxng/SubCNN_TF)
+Pre-trained ImageNet models can be downloaded [here](#https://drive.google.com/open?id=0ByuDEGFYmWsbNVF5eExySUtMZmM).
+
+### Training Results
+
+Download model training on PASCAL VOC 2007 [here](#https://drive.google.com/open?id=0ByuDEGFYmWsbZ0EzeUlHcGFIVWM).
+
+| Classes       | AP     |
+|-------------|--------|
+| aeroplane   | 0.6903 |
+| bicycle     | 0.7597 |
+| bird        | 0.6423 |
+| boat        | 0.5408 |
+| bottle      | 0.4688 |
+| bus         | 0.7609 |
+| car         | 0.7920 |
+| cat         | 0.7878 |
+| chair       | 0.4696 |
+| cow         | 0.7030 |
+| diningtable | 0.6218 |
+| dog         | 0.7525 |
+| horse       | 0.7938 |
+| motorbike   | 0.7414 |
+| person      | 0.7643 |
+| pottedplant | 0.3718 |
+| sheep       | 0.6476 |
+| sofa        | 0.6146 |
+| train       | 0.7660 |
+| tvmonitor   | 0.6639 |
+| mAP        | 0.6676 |
+
+
 

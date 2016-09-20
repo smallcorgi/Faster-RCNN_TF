@@ -8,7 +8,6 @@ anchor_scales = [8, 16, 32]
 class VGGnet_test(Network):
     def __init__(self, trainable=True):
         self.inputs = []
-        #self.data = tf.placeholder(tf.float32, shape=[None, None, None, 3])
         self.data = tf.placeholder(tf.float32, shape=[None, None, None, 3])
         self.im_info = tf.placeholder(tf.float32, shape=[None, 3])
         self.keep_prob = tf.placeholder(tf.float32)
@@ -51,7 +50,7 @@ class VGGnet_test(Network):
              .reshape_layer(len(anchor_scales)*3*2,name = 'rpn_cls_prob_reshape'))
 
         (self.feed('rpn_cls_prob_reshape','rpn_bbox_pred','im_info')
-             .proposal_layer(_feat_stride, anchor_scales, name = 'rois'))
+             .proposal_layer(_feat_stride, anchor_scales, 'TEST', name = 'rois'))
         
         (self.feed('conv5_3', 'rois')
              .roi_pool(7, 7, 1.0/16, name='pool_5')

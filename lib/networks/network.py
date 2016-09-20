@@ -6,7 +6,6 @@ from rpn_msr.proposal_layer_tf import proposal_layer as proposal_layer_py
 from rpn_msr.anchor_target_layer_tf import anchor_target_layer as anchor_target_layer_py
 from rpn_msr.proposal_target_layer_tf import proposal_target_layer as proposal_target_layer_py
 
-import pdb
 
 
 DEFAULT_PADDING = 'SAME'
@@ -57,14 +56,6 @@ class Network(object):
 
                             raise
 
-                #for subkey, data in zip(('weights', 'biases'), data_dict[key]):
-                #    try:
-                #        var = tf.get_variable(subkey)
-                #        session.run(var.assign(data))
-                #    except ValueError:
-                #        if not ignore_missing:
-                #            raise
-
     def feed(self, *args):
         assert len(args)!=0
         self.inputs = []
@@ -99,32 +90,17 @@ class Network(object):
 
     @layer
     def conv(self, input, k_h, k_w, c_o, s_h, s_w, name, relu=True, padding=DEFAULT_PADDING, group=1, trainable=True):
-        #all_layer = np.load('/home/corgi/faster-rcnn_tf/SubCNN_TF/fast-rcnn/lib/networks/all_layer.npy').all()
-        #all_layer = np.load('/home/corgi/faster-rcnn_tf/SubCNN_TF/fast-rcnn/data/pretrain_model/VGG_imagenet.npy').all()
         self.validate_padding(padding)
         c_i = input.get_shape()[-1]
         assert c_i%group==0
         assert c_o%group==0
         convolve = lambda i, k: tf.nn.conv2d(i, k, [1, s_h, s_w, 1], padding=padding)
         with tf.variable_scope(name) as scope:
-            '''
-            if name in all_layer.keys():
-                kernel = tf.Variable(tf.transpose(all_layer[name]['weights'],[2,3,1,0]),name = 'weights')
-                biases = tf.Variable(all_layer[name]['biases'],name = 'biases')
-            else:
-                init_weights = tf.truncated_normal_initializer(0.0, stddev=0.001)
-                init_biases = tf.constant_initializer(0.0)
-                kernel = self.make_var('weights', [k_h, k_w, c_i/group, c_o], init_weights, trainable)
-                biases = self.make_var('biases', [c_o], init_biases, trainable)
-            '''
 
             init_weights = tf.truncated_normal_initializer(0.0, stddev=0.01)
             init_biases = tf.constant_initializer(0.0)
             kernel = self.make_var('weights', [k_h, k_w, c_i/group, c_o], init_weights, trainable)
             biases = self.make_var('biases', [c_o], init_biases, trainable)
-
-            #kernel = tf.Variable(tf.transpose(all_layer[name]['weights'],[2,3,1,0]),name = 'weights')
-            #biases = tf.Variable(all_layer[name]['biases'],name = 'biases')
 
             if group==1:
                 conv = convolve(input, kernel)
@@ -177,10 +153,10 @@ class Network(object):
                                     name=name)[0]
 
     @layer
-    def proposal_layer(self, input, _feat_stride, anchor_scales, name):
+    def proposal_layer(self, input, _feat_stride, anchor_scales, cfg_key, name):
         if isinstance(input[0], tuple):
             input[0] = input[0][0]
-        return tf.reshape(tf.py_func(proposal_layer_py,[input[0],input[1],input[2], _feat_stride, anchor_scales], [tf.float32]),[-1,5],name =name)
+        return tf.reshape(tf.py_func(proposal_layer_py,[input[0],input[1],input[2], cfg_key, _feat_stride, anchor_scales], [tf.float32]),[-1,5],name =name)
 
 
     @layer
@@ -221,14 +197,11 @@ class Network(object):
 
     @layer
     def reshape_layer(self, input, d,name):
-        #input_shape = input.get_shape()
         input_shape = tf.shape(input)
         if name == 'rpn_cls_prob_reshape':
-             #return tf.transpose(tf.reshape(tf.transpose(input,[0,3,1,2]),[-1,d,int(input_shape[1].value/float(d)*input_shape[3].value),input_shape[2].value]),[0,2,3,1],name=name)
              return tf.transpose(tf.reshape(tf.transpose(input,[0,3,1,2]),[input_shape[0],
                     int(d),tf.cast(tf.cast(input_shape[1],tf.float32)/tf.cast(d,tf.float32)*tf.cast(input_shape[3],tf.float32),tf.int32),input_shape[2]]),[0,2,3,1],name=name)
         else:
-             #return tf.transpose(tf.reshape(tf.transpose(input,[0,3,1,2]),[-1,d,input_shape[1].value*(input_shape[3].value/d),input_shape[2].value]),[0,2,3,1],name=name)
              return tf.transpose(tf.reshape(tf.transpose(input,[0,3,1,2]),[input_shape[0],
                     int(d),tf.cast(tf.cast(input_shape[1],tf.float32)*(tf.cast(input_shape[3],tf.float32)/tf.cast(d,tf.float32)),tf.int32),input_shape[2]]),[0,2,3,1],name=name)
 
@@ -255,8 +228,6 @@ class Network(object):
 
     @layer
     def fc(self, input, num_out, name, relu=True, trainable=True):
-        #all_layer = np.load('/home/corgi/faster-rcnn_tf/SubCNN_TF/fast-rcnn/lib/networks/all_layer.npy').all()
-        #all_layer = np.load('/home/corgi/faster-rcnn_tf/SubCNN_TF/fast-rcnn/data/pretrain_model/VGG_imagenet.npy').all()
         with tf.variable_scope(name) as scope:
             # only use the first input
             if isinstance(input, tuple):
@@ -270,20 +241,14 @@ class Network(object):
                 feed_in = tf.reshape(tf.transpose(input,[0,3,1,2]), [-1, dim])
             else:
                 feed_in, dim = (input, int(input_shape[-1]))
-            '''
-            if name in all_layer.keys():
-                weights = tf.Variable(tf.transpose(all_layer[name]['weights'],[1,0]),name = 'weights')
-                biases = tf.Variable(all_layer[name]['biases'],name = 'biases')
-            else:
+
+            if name == 'bbox_pred':
                 init_weights = tf.truncated_normal_initializer(0.0, stddev=0.001)
                 init_biases = tf.constant_initializer(0.0)
-                weights = self.make_var('weights', [dim, num_out], init_weights, trainable)
-                biases = self.make_var('biases', [num_out], init_biases, trainable)
-            '''
-            #weights = tf.Variable(tf.transpose(all_layer[name]['weights'],[1,0]),name = 'weights')
-            #biases = tf.Variable(all_layer[name]['biases'],name = 'biases')
-            init_weights = tf.truncated_normal_initializer(0.0, stddev=0.01)
-            init_biases = tf.constant_initializer(0.0)
+            else:
+                init_weights = tf.truncated_normal_initializer(0.0, stddev=0.01)
+                init_biases = tf.constant_initializer(0.0)
+
             weights = self.make_var('weights', [dim, num_out], init_weights, trainable)
             biases = self.make_var('biases', [num_out], init_biases, trainable)
 
