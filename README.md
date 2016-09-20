@@ -41,11 +41,11 @@ The demo performs detection using a VGG16 network trained for detection on PASCA
 
 ### Download pre-trained ImageNet models
 
-Pre-trained ImageNet models can be downloaded [here](#https://drive.google.com/open?id=0ByuDEGFYmWsbNVF5eExySUtMZmM).
+Pre-trained ImageNet models can be downloaded [here](https://drive.google.com/open?id=0ByuDEGFYmWsbNVF5eExySUtMZmM).
 
 ### Training Results
 
-Download model training on PASCAL VOC 2007 [here](#https://drive.google.com/open?id=0ByuDEGFYmWsbZ0EzeUlHcGFIVWM).
+Download model training on PASCAL VOC 2007 [here](https://drive.google.com/open?id=0ByuDEGFYmWsbZ0EzeUlHcGFIVWM).
 
 | Classes       | AP     |
 |-------------|--------|
