@@ -1,7 +1,7 @@
 import _init_paths
 import tensorflow as tf
 from fast_rcnn.config import cfg
-from test import im_detect
+from fast_rcnn.test import im_detect
 from fast_rcnn.nms_wrapper import nms
 from utils.timer import Timer
 import matplotlib.pyplot as plt
@@ -72,7 +72,7 @@ def demo(sess, net, image_name):
     fig, ax = plt.subplots(figsize=(12, 12))
     ax.imshow(im, aspect='equal')
 
-    CONF_THRESH = 0.5
+    CONF_THRESH = 0.8
     NMS_THRESH = 0.3
     for cls_ind, cls in enumerate(CLASSES[1:]):
         cls_ind += 1 # because we skipped background
@@ -95,7 +95,7 @@ def parse_args():
     parser.add_argument('--net', dest='demo_net', help='Network to use [vgg16]',
                         default='VGGnet_test')
     parser.add_argument('--model', dest='model', help='Model path',
-                        default='faster_rcnn_tf.model')
+                        default=' ')
 
     args = parser.parse_args()
 
@@ -105,9 +105,9 @@ if __name__ == '__main__':
 
     args = parse_args()
 
-    if not os.path.isfile(args.model):
-        raise IOError(('{:s} not found.\nDid you run ./data/script/'
-                       'fetch_faster_rcnn_models.sh?').format(caffemodel))
+    if args.model == ' ':
+        raise IOError(('Error: Model not found.\n'))
+        
     # init session
     sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
     # load network
@@ -124,7 +124,6 @@ if __name__ == '__main__':
     for i in xrange(2):
         _, _= im_detect(sess, net, im)
 
-    #im_names = ['000001.jpg','000002.jpg','000005.jpg','000050.jpg','000100.jpg']
     im_names = ['000456.jpg', '000542.jpg', '001150.jpg',
                 '001763.jpg', '004545.jpg']
 
