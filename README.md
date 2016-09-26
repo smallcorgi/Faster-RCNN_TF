@@ -35,7 +35,7 @@ For details about R-CNN please refer to the paper [Faster R-CNN: Towards Real-Ti
 To run the demo
 ```Shell
 cd $FRCN_ROOT
-./tools/demo.py
+./tools/demo.py --model model_path
 ```
 The demo performs detection using a VGG16 network trained for detection on PASCAL VOC 2007.
 
