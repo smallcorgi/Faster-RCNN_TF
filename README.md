@@ -49,27 +49,27 @@ Download model training on PASCAL VOC 2007 [here](https://drive.google.com/open?
 
 | Classes       | AP     |
 |-------------|--------|
-| aeroplane   | 0.6903 |
-| bicycle     | 0.7597 |
-| bird        | 0.6423 |
-| boat        | 0.5408 |
-| bottle      | 0.4688 |
-| bus         | 0.7609 |
-| car         | 0.7920 |
-| cat         | 0.7878 |
-| chair       | 0.4696 |
-| cow         | 0.7030 |
-| diningtable | 0.6218 |
-| dog         | 0.7525 |
-| horse       | 0.7938 |
-| motorbike   | 0.7414 |
-| person      | 0.7643 |
-| pottedplant | 0.3718 |
-| sheep       | 0.6476 |
-| sofa        | 0.6146 |
-| train       | 0.7660 |
-| tvmonitor   | 0.6639 |
-| mAP        | 0.6676 |
+| aeroplane   | 0.698 |
+| bicycle     | 0.788 |
+| bird        | 0.657 |
+| boat        | 0.565 |
+| bottle      | 0.478 |
+| bus         | 0.762 |
+| car         | 0.797 |
+| cat         | 0.793 |
+| chair       | 0.479 |
+| cow         | 0.724 |
+| diningtable | 0.648 |
+| dog         | 0.803 |
+| horse       | 0.797 |
+| motorbike   | 0.732 |
+| person      | 0.770 |
+| pottedplant | 0.384 |
+| sheep       | 0.664 |
+| sofa        | 0.650 |
+| train       | 0.766 |
+| tvmonitor   | 0.666 |
+| mAP        | 0.681 |
 
 
 
