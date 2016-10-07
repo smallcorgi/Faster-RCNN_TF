@@ -1,0 +1,7 @@
+*.txt
+*.caffemodel
+*.npy
+*.prototxt
+*.snapshot
+*.ckpt
+data/imagenet_model/
