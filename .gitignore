@@ -5,3 +5,6 @@
 *.snapshot
 *.ckpt
 data/imagenet_model/
+*.o
+*.pyc
+*.so
