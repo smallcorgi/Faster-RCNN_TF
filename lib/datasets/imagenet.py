@@ -106,7 +106,7 @@ class imagenet(imdb):
         """
         Return the default path where imagenet is expected to be installed.
         """
-        return os.path.join('/tmp3/pcjeff/vid/ILSVRC2015/')
+        return os.path.join('/tmp3/jeff/vid/ILSVRC2015/')
 
     def gt_roidb(self):
         """
