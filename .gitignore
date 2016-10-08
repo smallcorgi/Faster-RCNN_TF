@@ -7,4 +7,5 @@
 data/imagenet_model/
 *.o
 *.pyc
+*.so
 experiments/logs/
