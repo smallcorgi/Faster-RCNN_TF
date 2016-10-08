@@ -213,11 +213,11 @@ class imagenet(imdb):
         #val set don't need to split by '_'
         
         if self._image_set.find('val') != -1:
-            filename = self.ImagePath2AnnoPath('/tmp3/jeff/vid/ILSVRC2015/Resized_Annotations/VID/', index+'.xml')
+            filename = self.ImagePath2AnnoPath('/tmp3/jeff/vid/ILSVRC2015/Annotations/VID/', index+'.xml')
             #filename = os.path.join(self._devkit_path, 'Annotations', 'VID', 'val', index + '.xml')
         #train set need to split '_' into batch_id snipet_id frame_id
         else:
-            filename = self.ImagePath2AnnoPath('/tmp3/jeff/vid/ILSVRC2015/Resized_Annotations/VID/train/', index+'.xml')
+            filename = self.ImagePath2AnnoPath('/tmp3/jeff/vid/ILSVRC2015/Annotations/VID/train/', index+'.xml')
             #filename = os.path.join(self._devkit_path, 'Annotations', 'VID', 'train', index + '.xml')
         
         tree = ET.parse(filename)
