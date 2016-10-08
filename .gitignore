@@ -4,7 +4,7 @@
 *.prototxt
 *.snapshot
 *.ckpt
-data/imagenet_model/
+data/pretrain_model/
 *.o
 *.pyc
 *.so
