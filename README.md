@@ -25,7 +25,7 @@ For details about R-CNN please refer to the paper [Faster R-CNN: Towards Real-Ti
 2. Build the Cython modules
     ```Shell
     cd $FRCN_ROOT/lib
-    sh make.sh
+    make
     ```
 
 ### Demo
