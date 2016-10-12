@@ -9,4 +9,5 @@ data/cache/
 *.o
 *.pyc
 *.so
+*.swp
 experiments/logs/
