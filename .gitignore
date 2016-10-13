@@ -10,4 +10,5 @@ data/cache/
 *.pyc
 *.so
 *.swp
-experiments/logs/
+!experiments/logs/
+experiments/logs/*
