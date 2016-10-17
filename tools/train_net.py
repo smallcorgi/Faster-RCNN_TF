@@ -77,6 +77,7 @@ if __name__ == '__main__':
     if not args.randomize:
         # fix the random seeds (numpy and caffe) for reproducibility
         np.random.seed(cfg.RNG_SEED)
+
     imdb = get_imdb(args.imdb_name)
     print 'Loaded dataset `{:s}` for training'.format(imdb.name)
     roidb = get_training_roidb(imdb)
@@ -87,7 +88,8 @@ if __name__ == '__main__':
     device_name = '/gpu:{:d}'.format(args.gpu_id)
     print device_name
 
-    network = get_network(args.network_name)
+    with tf.device(device_name):
+        network = get_network(args.network_name)
     print 'Use network `{:s}` in training'.format(args.network_name)
 
     train_net(network, imdb, roidb, output_dir,
