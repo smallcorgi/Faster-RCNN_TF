@@ -39,9 +39,6 @@ cd $FRCN_ROOT
 ```
 The demo performs detection using a VGG16 network trained for detection on PASCAL VOC 2007.
 
-### Download pre-trained ImageNet models
-
-Pre-trained ImageNet models can be downloaded [here](https://drive.google.com/open?id=0ByuDEGFYmWsbNVF5eExySUtMZmM).
 
 ### Training Results
 
@@ -72,4 +69,6 @@ Download model training on PASCAL VOC 2007 [here](https://drive.google.com/open?
 | mAP        | 0.681 |
 
 
+### Download pre-trained ImageNet models
 
+If you want to train the model by yourself, and you can download the pre-trained ImageNet models [here](https://drive.google.com/open?id=0ByuDEGFYmWsbNVF5eExySUtMZmM).
