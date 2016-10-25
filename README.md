@@ -72,3 +72,9 @@ Download model training on PASCAL VOC 2007 [here](https://drive.google.com/open?
 ### Download pre-trained ImageNet models
 
 If you want to train the model by yourself, and you can download the pre-trained ImageNet models [here](https://drive.google.com/open?id=0ByuDEGFYmWsbNVF5eExySUtMZmM).
+
+###References
+[Faster R-CNN caffe version](https://github.com/rbgirshick/py-faster-rcnn)
+
+[A tensorflow implementation of SubCNN (working progress)](https://github.com/yuxng/SubCNN_TF)
+
