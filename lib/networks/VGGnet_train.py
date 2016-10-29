@@ -19,6 +19,17 @@ class VGGnet_train(Network):
         self.trainable = trainable
         self.setup()
 
+        # create ops and placeholders for bbox normalization process
+        with tf.variable_scope('bbox_pred', reuse=True):
+            weights = tf.get_variable("weights")
+            biases = tf.get_variable("biases")
+
+            self.bbox_weights = tf.placeholder(weights.dtype, shape=weights.get_shape())
+            self.bbox_biases = tf.placeholder(biases.dtype, shape=biases.get_shape())
+
+            self.bbox_weights_assign = weights.assign(self.bbox_weights)
+            self.bbox_bias_assign = biases.assign(self.bbox_biases)
+
     def setup(self):
         (self.feed('data')
              .conv(3, 3, 64, 1, 1, name='conv1_1', trainable=False)
@@ -42,7 +53,7 @@ class VGGnet_train(Network):
         (self.feed('conv5_3')
              .conv(3,3,512,1,1,name='rpn_conv/3x3')
              .conv(1,1,len(anchor_scales)*3*2 ,1 , 1, padding='VALID', relu = False, name='rpn_cls_score'))
-  
+
         (self.feed('rpn_cls_score','gt_boxes','im_info','data')
              .anchor_target_layer(_feat_stride, anchor_scales, name = 'rpn-data' ))
 
@@ -66,7 +77,7 @@ class VGGnet_train(Network):
              .proposal_target_layer(n_classes,name = 'roi-data'))
 
 
-        #========= RCNN ============        
+        #========= RCNN ============
         (self.feed('conv5_3', 'roi-data')
              .roi_pool(7, 7, 1.0/16, name='pool_5')
              .fc(4096, name='fc6')

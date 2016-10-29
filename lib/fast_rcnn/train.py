@@ -57,8 +57,8 @@ class SolverWrapper(object):
 
             # scale and shift with bbox reg unnormalization; then save snapshot
             weights_shape = weights.get_shape().as_list()
-            sess.run(weights.assign(orig_0 * np.tile(self.bbox_stds, (weights_shape[0],1))))
-            sess.run(biases.assign(orig_1 * self.bbox_stds + self.bbox_means))
+            sess.run(net.bbox_weights_assign, feed_dict={net.bbox_weights: orig_0 * np.tile(self.bbox_stds, (weights_shape[0], 1))})
+            sess.run(net.bbox_bias_assign, feed_dict={net.bbox_biases: orig_1 * self.bbox_stds + self.bbox_means})
 
         if not os.path.exists(self.output_dir):
             os.makedirs(self.output_dir)
@@ -73,16 +73,17 @@ class SolverWrapper(object):
         print 'Wrote snapshot to: {:s}'.format(filename)
 
         if cfg.TRAIN.BBOX_REG and net.layers.has_key('bbox_pred'):
-            # restore net to original state
-            sess.run(weights.assign(orig_0))
-            sess.run(biases.assign(orig_1))
+            with tf.variable_scope('bbox_pred', reuse=True):
+                # restore net to original state
+                sess.run(net.bbox_weights_assign, feed_dict={net.bbox_weights: orig_0})
+                sess.run(net.bbox_bias_assign, feed_dict={net.bbox_biases: orig_1})
 
 
     def train_model(self, sess, max_iters):
         """Network training loop."""
 
         data_layer = get_data_layer(self.roidb, self.imdb.num_classes)
-   
+
         # RPN
         # classification loss
         rpn_cls_score = tf.reshape(self.net.get_output('rpn_cls_score_reshape'),[-1,2])
@@ -102,7 +103,7 @@ class SolverWrapper(object):
         rpn_loss_box = tf.mul(tf.reduce_mean(tf.reduce_sum(tf.mul(rpn_bbox_outside_weights,tf.add(
                        tf.mul(tf.mul(tf.pow(tf.mul(rpn_bbox_inside_weights, tf.sub(rpn_bbox_pred, rpn_bbox_targets))*3,2),0.5),smoothL1_sign),
                        tf.mul(tf.sub(tf.abs(tf.sub(rpn_bbox_pred, rpn_bbox_targets)),0.5/9.0),tf.abs(smoothL1_sign-1)))), reduction_indices=[1,2])),10)
- 
+
         # R-CNN
         # classification loss
         cls_score = self.net.get_output('cls_score')
