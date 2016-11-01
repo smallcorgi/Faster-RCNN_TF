@@ -32,6 +32,8 @@ For details about R-CNN please refer to the paper [Faster R-CNN: Towards Real-Ti
 
 *After successfully completing [basic installation](#installation-sufficient-for-the-demo)*, you'll be ready to run the demo.
 
+Download model training on PASCAL VOC 2007  [[Google Drive]](https://drive.google.com/open?id=0ByuDEGFYmWsbZ0EzeUlHcGFIVWM) [[Dropbox]](https://www.dropbox.com/s/cfz3blmtmwj6bdh/VGGnet_fast_rcnn_iter_70000.ckpt?dl=0)
+
 To run the demo
 ```Shell
 cd $FRCN_ROOT
@@ -86,9 +88,7 @@ cd $FRCN_ROOT
 ./experiments/scripts/faster_rcnn_end2end.sh GPU_ID VGG16 pascal_voc
 ```
 
-### Training Results
-
-Download model training on PASCAL VOC 2007  [[Google Drive]](https://drive.google.com/open?id=0ByuDEGFYmWsbZ0EzeUlHcGFIVWM) [[Dropbox]](https://www.dropbox.com/s/cfz3blmtmwj6bdh/VGGnet_fast_rcnn_iter_70000.ckpt?dl=0)
+### The result of testing on PASCAL VOC 2007 
 
 | Classes       | AP     |
 |-------------|--------|
