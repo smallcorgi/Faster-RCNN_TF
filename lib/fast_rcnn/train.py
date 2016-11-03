@@ -52,13 +52,14 @@ class SolverWrapper(object):
                 weights = tf.get_variable("weights")
                 biases = tf.get_variable("biases")
 
-            orig_0 = weights.eval()
-            orig_1 = biases.eval()
+                orig_0 = weights.eval()
+                orig_1 = biases.eval()
 
-            # scale and shift with bbox reg unnormalization; then save snapshot
-            weights_shape = weights.get_shape().as_list()
-            sess.run(weights.assign(orig_0 * np.tile(self.bbox_stds, (weights_shape[0],1))))
-            sess.run(biases.assign(orig_1 * self.bbox_stds + self.bbox_means))
+                # scale and shift with bbox reg unnormalization; then save snapshot
+                weights_shape = weights.get_shape().as_list()
+
+                sess.run(net.bbox_weights_assign, feed_dict={net.bbox_weights: orig_0 * np.tile(self.bbox_stds, (weights_shape[0], 1))})
+                sess.run(net.bbox_bias_assign, feed_dict={net.bbox_biases: orig_1 * self.bbox_stds + self.bbox_means})
 
         if not os.path.exists(self.output_dir):
             os.makedirs(self.output_dir)
@@ -73,9 +74,10 @@ class SolverWrapper(object):
         print 'Wrote snapshot to: {:s}'.format(filename)
 
         if cfg.TRAIN.BBOX_REG and net.layers.has_key('bbox_pred'):
-            # restore net to original state
-            sess.run(weights.assign(orig_0))
-            sess.run(biases.assign(orig_1))
+            with tf.variable_scope('bbox_pred', reuse=True):
+                # restore net to original state
+                sess.run(net.bbox_weights_assign, feed_dict={net.bbox_weights: orig_0})
+                sess.run(net.bbox_bias_assign, feed_dict={net.bbox_biases: orig_1})
 
 
     def train_model(self, sess, max_iters):
@@ -123,6 +125,8 @@ class SolverWrapper(object):
 
         # optimizer
         lr = tf.Variable(cfg.TRAIN.LEARNING_RATE, trainable=False)
+        lr_placeholder = tf.placeholder(tf.float32)
+        lr_assign = lr.assign(lr_placeholder)
         momentum = cfg.TRAIN.MOMENTUM
         train_op = tf.train.MomentumOptimizer(lr, momentum).minimize(loss)
 
@@ -137,10 +141,9 @@ class SolverWrapper(object):
         timer = Timer()
         for iter in range(max_iters):
             # learning rate
-            if iter >= cfg.TRAIN.STEPSIZE:
-                sess.run(tf.assign(lr, cfg.TRAIN.LEARNING_RATE * cfg.TRAIN.GAMMA))
-            else:
-                sess.run(tf.assign(lr, cfg.TRAIN.LEARNING_RATE))
+            if (iter+1) % cfg.TRAIN.STEPSIZE == 0:
+                new_lr = lr.eval() * cfg.TRAIN.GAMMA
+                sess.run(lr_assign, feed_dict={lr_placeholder: new_lr})
 
             # get one batch
             blobs = data_layer.forward()
