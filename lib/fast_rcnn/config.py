@@ -19,6 +19,7 @@ Most tools in $ROOT/tools take a --cfg option to specify an override file.
 import os
 import os.path as osp
 import numpy as np
+from distutils import spawn
 # `pip install easydict` if you don't have it
 from easydict import EasyDict as edict
 
@@ -225,11 +226,15 @@ __C.MATLAB = 'matlab'
 # Place outputs under an experiments directory
 __C.EXP_DIR = 'default'
 
-# Use GPU implementation of non-maximum suppression
-__C.USE_GPU_NMS = True
 
-# Default GPU device id
-__C.GPU_ID = 0
+if spawn.find_executable("nvcc"):
+    # Use GPU implementation of non-maximum suppression
+    __C.USE_GPU_NMS = True
+
+    # Default GPU device id
+    __C.GPU_ID = 0
+else:
+    __C.USE_GPU_NMS = False
 
 
 def get_output_dir(imdb, weights_filename):

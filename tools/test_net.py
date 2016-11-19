@@ -24,7 +24,9 @@ def parse_args():
     Parse input arguments
     """
     parser = argparse.ArgumentParser(description='Test a Fast R-CNN network')
-    parser.add_argument('--gpu', dest='gpu_id', help='GPU id to use',
+    parser.add_argument('--device', dest='device', help='device to use',
+                        default='cpu', type=str)
+    parser.add_argument('--device_id', dest='device_id', help='device id to use',
                         default=0, type=int)
     parser.add_argument('--def', dest='prototxt',
                         help='prototxt file defining the network',
@@ -74,13 +76,17 @@ if __name__ == '__main__':
     imdb = get_imdb(args.imdb_name)
     imdb.competition_mode(args.comp_mode)
 
-    device_name = '/gpu:{:d}'.format(args.gpu_id)
+    device_name = '/{}:{:d}'.format(args.device,args.device_id)
     print device_name
 
     network = get_network(args.network_name)
     print 'Use network `{:s}` in training'.format(args.network_name)
 
-    cfg.GPU_ID = args.gpu_id
+    if args.device == 'gpu':
+        cfg.USE_GPU_NMS = True
+        cfg.GPU_ID = args.device_id
+    else:
+        cfg.USE_GPU_NMS = False
 
     # start a session
     saver = tf.train.Saver()
