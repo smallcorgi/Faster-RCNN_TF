@@ -16,7 +16,8 @@ import numpy as np
 import os
 import tensorflow as tf
 import sys
-
+from tensorflow.python.client import timeline
+import time
 
 class SolverWrapper(object):
     """A simple wrapper around Caffe's solver.
@@ -145,14 +146,30 @@ class SolverWrapper(object):
             # Make one SGD update
             feed_dict={self.net.data: blobs['data'], self.net.im_info: blobs['im_info'], self.net.keep_prob: 0.5, \
                            self.net.gt_boxes: blobs['gt_boxes']}
+
+            run_options = None
+            run_metadata = None
+            if cfg.TRAIN.DEBUG_TIMELINE:
+                run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+                run_metadata = tf.RunMetadata()
+
             timer.tic()
 
-            rpn_loss_cls_value, rpn_loss_box_value,loss_cls_value, loss_box_value, _ = sess.run([rpn_cross_entropy, rpn_loss_box, cross_entropy, loss_box, train_op], feed_dict=feed_dict)
+            rpn_loss_cls_value, rpn_loss_box_value,loss_cls_value, loss_box_value, _ = sess.run([rpn_cross_entropy, rpn_loss_box, cross_entropy, loss_box, train_op],
+                                                                                                feed_dict=feed_dict,
+                                                                                                options=run_options,
+                                                                                                run_metadata=run_metadata)
 
             timer.toc()
 
+            if cfg.TRAIN.DEBUG_TIMELINE:
+                trace = timeline.Timeline(step_stats=run_metadata.step_stats)
+                trace_file = open(str(long(time.time() * 1000)) + '-train-timeline.ctf.json', 'w')
+                trace_file.write(trace.generate_chrome_trace_format(show_memory=False))
+                trace_file.close()
+
             if (iter+1) % (cfg.TRAIN.DISPLAY) == 0:
-                print 'iter: %d / %d,total loss: %.4f, rpn_loss_cls: %.4f, rpn_loss_box: %.4f, loss_cls: %.4f, loss_box: %.4f, lr: %f'%\
+                print 'iter: %d / %d, total loss: %.4f, rpn_loss_cls: %.4f, rpn_loss_box: %.4f, loss_cls: %.4f, loss_box: %.4f, lr: %f'%\
                         (iter+1, max_iters, rpn_loss_cls_value + rpn_loss_box_value + loss_cls_value + loss_box_value ,rpn_loss_cls_value, rpn_loss_box_value,loss_cls_value, loss_box_value, lr.eval())
                 print 'speed: {:.3f}s / iter'.format(timer.average_time)
 
