@@ -22,7 +22,7 @@ limitations under the License.
 #include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/framework/op_kernel.h"
 #include "tensorflow/core/framework/tensor_shape.h"
-#include "tensorflow/core/util/work_sharder.h"
+#include "work_sharder.h"
 
 using namespace tensorflow;
 typedef Eigen::ThreadPoolDevice CPUDevice;
