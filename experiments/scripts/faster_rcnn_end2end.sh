@@ -12,14 +12,14 @@ set -e
 
 export PYTHONUNBUFFERED="True"
 
-GPU_ID=$1
-NET=$2
-NET_lc=${NET,,}
-DATASET=$3
+DEV=$1
+DEV_ID=$2
+NET=$3
+DATASET=$4
 
 array=( $@ )
 len=${#array[@]}
-EXTRA_ARGS=${array[@]:3:$len}
+EXTRA_ARGS=${array[@]:4:$len}
 EXTRA_ARGS_SLUG=${EXTRA_ARGS// /_}
 
 case $DATASET in
@@ -48,7 +48,7 @@ LOG="experiments/logs/faster_rcnn_end2end_${NET}_${EXTRA_ARGS_SLUG}.txt.`date +'
 exec &> >(tee -a "$LOG")
 echo Logging output to "$LOG"
 
-time python ./tools/train_net.py --gpu ${GPU_ID} \
+time python ./tools/train_net.py --device ${DEV} --device_id ${DEV_ID} \
   --weights data/pretrain_model/VGG_imagenet.npy \
   --imdb ${TRAIN_IMDB} \
   --iters ${ITERS} \
@@ -60,7 +60,7 @@ set +x
 NET_FINAL=`grep -B 1 "done solving" ${LOG} | grep "Wrote snapshot" | awk '{print $4}'`
 set -x
 
-time python ./tools/test_net.py --gpu ${GPU_ID} \
+time python ./tools/test_net.py --device ${DEV} --device_id ${DEV_ID} \
   --weights ${NET_FINAL} \
   --imdb ${TEST_IMDB} \
   --cfg experiments/cfgs/faster_rcnn_end2end.yml \

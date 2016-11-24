@@ -19,6 +19,7 @@ Most tools in $ROOT/tools take a --cfg option to specify an override file.
 import os
 import os.path as osp
 import numpy as np
+from distutils import spawn
 # `pip install easydict` if you don't have it
 from easydict import EasyDict as edict
 
@@ -145,6 +146,8 @@ __C.TRAIN.RPN_BBOX_INSIDE_WEIGHTS = (1.0, 1.0, 1.0, 1.0)
 # Set to -1.0 to use uniform example weighting
 __C.TRAIN.RPN_POSITIVE_WEIGHT = -1.0
 
+# Enable timeline generation
+__C.TRAIN.DEBUG_TIMELINE = False
 
 #
 # Testing options
@@ -187,6 +190,8 @@ __C.TEST.RPN_POST_NMS_TOP_N = 300
 # Proposal height and width both need to be greater than RPN_MIN_SIZE (at orig image scale)
 __C.TEST.RPN_MIN_SIZE = 16
 
+# Enable timeline generation
+__C.TEST.DEBUG_TIMELINE = False
 
 #
 # MISC
@@ -225,11 +230,15 @@ __C.MATLAB = 'matlab'
 # Place outputs under an experiments directory
 __C.EXP_DIR = 'default'
 
-# Use GPU implementation of non-maximum suppression
-__C.USE_GPU_NMS = True
 
-# Default GPU device id
-__C.GPU_ID = 0
+if spawn.find_executable("nvcc"):
+    # Use GPU implementation of non-maximum suppression
+    __C.USE_GPU_NMS = True
+
+    # Default GPU device id
+    __C.GPU_ID = 0
+else:
+    __C.USE_GPU_NMS = False
 
 
 def get_output_dir(imdb, weights_filename):

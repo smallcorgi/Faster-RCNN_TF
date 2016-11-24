@@ -85,8 +85,9 @@ The demo performs detection using a VGG16 network trained for detection on PASCA
 6. Run script to train and test model
 	```Shell
 	cd $FRCN_ROOT
-	./experiments/scripts/faster_rcnn_end2end.sh GPU_ID VGG16 pascal_voc
+	./experiments/scripts/faster_rcnn_end2end.sh $DEVICE $DEVICE_ID VGG16 pascal_voc
 	```
+  DEVICE is either cpu/gpu
 
 ### The result of testing on PASCAL VOC 2007 
 
