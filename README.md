@@ -37,7 +37,7 @@ Download model training on PASCAL VOC 2007  [[Google Drive]](https://drive.googl
 To run the demo
 ```Shell
 cd $FRCN_ROOT
-./tools/demo.py --model model_path
+python ./tools/demo.py --model model_path
 ```
 The demo performs detection using a VGG16 network trained for detection on PASCAL VOC 2007.
 
