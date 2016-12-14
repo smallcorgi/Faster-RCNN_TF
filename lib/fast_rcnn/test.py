@@ -133,7 +133,7 @@ def _rescale_boxes(boxes, inds, scales):
 def im_detect(sess, net, im, boxes=None):
     """Detect object classes in an image given object proposals.
     Arguments:
-        net (caffe.Net): Fast R-CNN network to use
+        net (tensorflow graph): Fast or Faster R-CNN network to use
         im (ndarray): color image to test (in BGR order)
         boxes (ndarray): R x 4 array of object proposals
     Returns:
