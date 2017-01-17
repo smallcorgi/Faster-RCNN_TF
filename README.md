@@ -39,6 +39,13 @@ To run the demo
 cd $FRCN_ROOT
 python ./tools/demo.py --model model_path
 ```
+
+To run the video demo
+```Shell
+cd $FRCN_ROOT
+python ./tools/demo.py --model model_path --video video_path
+```
+
 The demo performs detection using a VGG16 network trained for detection on PASCAL VOC 2007.
 
 ### Training Model
