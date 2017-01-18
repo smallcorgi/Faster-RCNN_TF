@@ -14,7 +14,8 @@ from rpn_msr.generate import imdb_proposals_det
 import tensorflow as tf
 from fast_rcnn.bbox_transform import clip_boxes, bbox_transform_inv
 import matplotlib.pyplot as plt
-
+from tensorflow.python.client import timeline
+import time
 
 def _get_image_blob(im):
     """Converts an image into a network input.
@@ -166,8 +167,17 @@ def im_detect(sess, net, im, boxes=None):
     else:
         feed_dict={net.data: blobs['data'], net.rois: blobs['rois'], net.keep_prob: 1.0}
 
-    cls_score, cls_prob, bbox_pred, rois = sess.run([net.get_output('cls_score'), net.get_output('cls_prob'), net.get_output('bbox_pred'),net.get_output('rois')], feed_dict=feed_dict)
-    
+    run_options = None
+    run_metadata = None
+    if cfg.TEST.DEBUG_TIMELINE:
+        run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+        run_metadata = tf.RunMetadata()
+
+    cls_score, cls_prob, bbox_pred, rois = sess.run([net.get_output('cls_score'), net.get_output('cls_prob'), net.get_output('bbox_pred'),net.get_output('rois')],
+                                                    feed_dict=feed_dict,
+                                                    options=run_options,
+                                                    run_metadata=run_metadata)
+
     if cfg.TEST.HAS_RPN:
         assert len(im_scales) == 1, "Only single-image batch implemented"
         boxes = rois[:, 1:5] / im_scales[0]
@@ -195,16 +205,22 @@ def im_detect(sess, net, im, boxes=None):
         scores = scores[inv_index, :]
         pred_boxes = pred_boxes[inv_index, :]
 
+    if cfg.TEST.DEBUG_TIMELINE:
+        trace = timeline.Timeline(step_stats=run_metadata.step_stats)
+        trace_file = open(str(long(time.time() * 1000)) + '-test-timeline.ctf.json', 'w')
+        trace_file.write(trace.generate_chrome_trace_format(show_memory=False))
+        trace_file.close()
+
     return scores, pred_boxes
 
 
 def vis_detections(im, class_name, dets, thresh=0.8):
     """Visual debugging of detections."""
-    import matplotlib.pyplot as plt 
+    import matplotlib.pyplot as plt
     #im = im[:, :, (2, 1, 0)]
     for i in xrange(np.minimum(10, dets.shape[0])):
-        bbox = dets[i, :4] 
-        score = dets[i, -1] 
+        bbox = dets[i, :4]
+        score = dets[i, -1]
         if score > thresh:
             #plt.cla()
             #plt.imshow(im)
@@ -288,7 +304,7 @@ def test_net(sess, net, imdb, weights_filename , max_per_image=300, thresh=0.05,
 
         _t['misc'].tic()
         if vis:
-            image = im[:, :, (2, 1, 0)] 
+            image = im[:, :, (2, 1, 0)]
             plt.cla()
             plt.imshow(image)
 

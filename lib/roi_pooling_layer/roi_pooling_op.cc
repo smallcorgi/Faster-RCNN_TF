@@ -22,6 +22,7 @@ limitations under the License.
 #include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/framework/op_kernel.h"
 #include "tensorflow/core/framework/tensor_shape.h"
+#include "work_sharder.h"
 
 using namespace tensorflow;
 typedef Eigen::ThreadPoolDevice CPUDevice;
@@ -70,7 +71,7 @@ class RoiPoolOp : public OpKernel {
                    context->GetAttr("spatial_scale", &spatial_scale_));
   }
 
-  void Compute(OpKernelContext* context) override 
+  void Compute(OpKernelContext* context) override
   {
     // Grab the input tensor
     const Tensor& bottom_data = context->input(0);
@@ -115,97 +116,83 @@ class RoiPoolOp : public OpKernel {
     OP_REQUIRES_OK(context, context->allocate_output(1, output_shape, &argmax_tensor));
     auto argmax = argmax_tensor->template flat<int>();
 
-    // Set all element of the output tensor to -inf.
-    const int N = output.size();
-    for (int i = 0; i < N; i++) 
-    {
-      output(i) = -FLT_MAX;
-      argmax(i) = -1;
-    }
+    int pooled_height = pooled_height_;
+    int pooled_width = pooled_width_;
+    float spatial_scale = spatial_scale_;
 
-    // For each ROI R = [batch_index x1 y1 x2 y2]: max pool over R
-    int index_roi = 0;
-    int index_output = 0;
-    for (int n = 0; n < num_rois; ++n) 
-    {
-      int roi_batch_ind = bottom_rois_flat(index_roi + 0);
-      int roi_start_w = round(bottom_rois_flat(index_roi + 1) * spatial_scale_);
-      int roi_start_h = round(bottom_rois_flat(index_roi + 2) * spatial_scale_);
-      int roi_end_w = round(bottom_rois_flat(index_roi + 3) * spatial_scale_);
-      int roi_end_h = round(bottom_rois_flat(index_roi + 4) * spatial_scale_);
-      CHECK_GE(roi_batch_ind, 0);
-      CHECK_LT(roi_batch_ind, batch_size);
-
-      int roi_height = std::max(roi_end_h - roi_start_h + 1, 1);
-      int roi_width = std::max(roi_end_w - roi_start_w + 1, 1);
-      const T bin_size_h = static_cast<T>(roi_height) / static_cast<T>(pooled_height_);
-      const T bin_size_w = static_cast<T>(roi_width) / static_cast<T>(pooled_width_);
-
-      int index_data = roi_batch_ind * data_height * data_width * num_channels;
-
-      for (int ph = 0; ph < pooled_height_; ++ph) 
+    auto shard = [pooled_height, pooled_width, spatial_scale,
+                  num_rois, batch_size, data_height, data_width, num_channels,
+                  &bottom_data_flat, &bottom_rois_flat, &output, &argmax]
+                  (int64 start, int64 limit) {
+      for (int64 b = start; b < limit; ++b)
       {
-        for (int pw = 0; pw < pooled_width_; ++pw) 
-        {
-          // Compute pooling region for this output unit:
-          //  start (included) = floor(ph * roi_height / pooled_height_)
-          //  end (excluded) = ceil((ph + 1) * roi_height / pooled_height_)
-          int hstart = static_cast<int>(floor(static_cast<T>(ph)
-                                              * bin_size_h));
-          int wstart = static_cast<int>(floor(static_cast<T>(pw)
-                                              * bin_size_w));
-          int hend = static_cast<int>(ceil(static_cast<T>(ph + 1)
-                                           * bin_size_h));
-          int wend = static_cast<int>(ceil(static_cast<T>(pw + 1)
-                                           * bin_size_w));
+        // (n, ph, pw, c) is an element in the pooled output
+        int n = b;
+        int c = n % num_channels;
+        n /= num_channels;
+        int pw = n % pooled_width;
+        n /= pooled_width;
+        int ph = n % pooled_height;
+        n /= pooled_height;
 
-          hstart = std::min(std::max(hstart + roi_start_h, 0), data_height);
-          hend = std::min(std::max(hend + roi_start_h, 0), data_height);
-          wstart = std::min(std::max(wstart + roi_start_w, 0), data_width);
-          wend = std::min(std::max(wend + roi_start_w, 0), data_width);
+        const float* bottom_rois = bottom_rois_flat.data() + n * 5;
+        int roi_batch_ind = bottom_rois[0];
+        int roi_start_w = round(bottom_rois[1] * spatial_scale);
+        int roi_start_h = round(bottom_rois[2] * spatial_scale);
+        int roi_end_w = round(bottom_rois[3] * spatial_scale);
+        int roi_end_h = round(bottom_rois[4] * spatial_scale);
 
-          bool is_empty = (hend <= hstart) || (wend <= wstart);
+        // Force malformed ROIs to be 1x1
+        int roi_width = std::max(roi_end_w - roi_start_w + 1, 1);
+        int roi_height = std::max(roi_end_h - roi_start_h + 1, 1);
+        const T bin_size_h = static_cast<T>(roi_height)
+                           / static_cast<T>(pooled_height);
+        const T bin_size_w = static_cast<T>(roi_width)
+                           / static_cast<T>(pooled_width);
 
-          const int pool_index = index_output + (ph * pooled_width_ + pw) * num_channels;
-          if (is_empty) 
-          {
-            for (int c = 0; c < num_channels; ++c) 
-            {
-              output(pool_index + c) = 0;
-              argmax(pool_index + c) = -1;
-            }
-          }
+        int hstart = floor(static_cast<int>(ph * bin_size_h));
+        int wstart = floor(static_cast<int>(pw * bin_size_w));
+        int hend = ceil(static_cast<int>((ph + 1) * bin_size_h));
+        int wend = ceil(static_cast<int>((pw + 1) * bin_size_w));
 
-          for (int h = hstart; h < hend; ++h) 
-          {
-            for (int w = wstart; w < wend; ++w) 
-            {
-              for (int c = 0; c < num_channels; ++c)
-              {
-                const int index = (h * data_width + w) * num_channels + c;
-                if (bottom_data_flat(index_data + index) > output(pool_index + c)) 
-                {
-                  output(pool_index + c) = bottom_data_flat(index_data + index);
-                  argmax(pool_index + c) = index;
-                }
-              }
+        // Add roi offsets and clip to input boundaries
+        hstart = std::min(std::max(hstart + roi_start_h, 0), data_height);
+        hend = std::min(std::max(hend + roi_start_h, 0), data_height);
+        wstart = std::min(std::max(wstart + roi_start_w, 0), data_width);
+        wend = std::min(std::max(wend + roi_start_w, 0), data_width);
+        bool is_empty = (hend <= hstart) || (wend <= wstart);
+
+        // Define an empty pooling region to be zero
+        float maxval = is_empty ? 0 : -FLT_MAX;
+        // If nothing is pooled, argmax = -1 causes nothing to be backprop'd
+        int maxidx = -1;
+        const float* bottom_data = bottom_data_flat.data() + roi_batch_ind * num_channels * data_height * data_width;
+        for (int h = hstart; h < hend; ++h) {
+          for (int w = wstart; w < wend; ++w) {
+            int bottom_index = (h * data_width + w) * num_channels + c;
+            if (bottom_data[bottom_index] > maxval) {
+              maxval = bottom_data[bottom_index];
+              maxidx = bottom_index;
             }
           }
         }
+        output(b) = maxval;
+        argmax(b) = maxidx;
       }
-      // Increment ROI index
-      index_roi += bottom_rois.dim_size(1);
-      index_output += pooled_height_ * pooled_width_ * num_channels;
-    }
+    };
+
+    const DeviceBase::CpuWorkerThreads& worker_threads =
+        *(context->device()->tensorflow_cpu_worker_threads());
+    const int64 shard_cost =
+        num_rois * num_channels * pooled_height * pooled_width * spatial_scale;
+    Shard(worker_threads.num_threads, worker_threads.workers,
+          output.size(), shard_cost, shard);
   }
  private:
   int pooled_height_;
   int pooled_width_;
   float spatial_scale_;
 };
-
-REGISTER_KERNEL_BUILDER(Name("RoiPool").Device(DEVICE_CPU).TypeConstraint<float>("T"), RoiPoolOp<CPUDevice, float>);
-REGISTER_KERNEL_BUILDER(Name("RoiPool").Device(DEVICE_CPU).TypeConstraint<double>("T"), RoiPoolOp<CPUDevice, double>);
 
 bool ROIPoolForwardLaucher(
     const float* bottom_data, const float spatial_scale, const int num_rois, const int height,
@@ -217,7 +204,7 @@ static void RoiPoolingKernel(
     OpKernelContext* context, const Tensor* bottom_data, const Tensor* bottom_rois,
     const float spatial_scale, const int num_rois, const int height,
     const int width, const int channels, const int pooled_height,
-    const int pooled_width, const TensorShape& tensor_output_shape) 
+    const int pooled_width, const TensorShape& tensor_output_shape)
 {
   Tensor* output = nullptr;
   Tensor* argmax = nullptr;
@@ -260,7 +247,7 @@ class RoiPoolOp<Eigen::GpuDevice, T> : public OpKernel {
                    context->GetAttr("spatial_scale", &spatial_scale_));
   }
 
-  void Compute(OpKernelContext* context) override 
+  void Compute(OpKernelContext* context) override
   {
     // Grab the input tensor
     const Tensor& bottom_data = context->input(0);
@@ -304,34 +291,6 @@ class RoiPoolOp<Eigen::GpuDevice, T> : public OpKernel {
   float spatial_scale_;
 };
 
-REGISTER_KERNEL_BUILDER(Name("RoiPool").Device(DEVICE_GPU).TypeConstraint<float>("T"), RoiPoolOp<Eigen::GpuDevice, float>);
-
-
-bool ROIPoolBackwardLaucher(const float* top_diff, const float spatial_scale, const int batch_size, const int num_rois,
-    const int height, const int width, const int channels, const int pooled_height,
-    const int pooled_width, const float* bottom_rois,
-    float* bottom_diff, const int* argmax_data, const Eigen::GpuDevice& d);
-
-static void RoiPoolingGradKernel(
-    OpKernelContext* context, const Tensor* bottom_data, const Tensor* bottom_rois, const Tensor* argmax_data, const Tensor* out_backprop,
-    const float spatial_scale, const int batch_size, const int num_rois, const int height,
-    const int width, const int channels, const int pooled_height,
-    const int pooled_width, const TensorShape& tensor_output_shape) 
-{
-  Tensor* output = nullptr;
-  OP_REQUIRES_OK(context, context->allocate_output(0, tensor_output_shape, &output));
-
-  if (!context->status().ok()) {
-    return;
-  }
-
-  ROIPoolBackwardLaucher(
-    out_backprop->flat<float>().data(), spatial_scale, batch_size, num_rois, height,
-    width, channels, pooled_height, pooled_width, bottom_rois->flat<float>().data(),
-    output->flat<float>().data(), argmax_data->flat<int>().data(), context->eigen_device<Eigen::GpuDevice>());
-}
-
-
 // compute gradient
 template <class Device, class T>
 class RoiPoolGradOp : public OpKernel {
@@ -357,7 +316,196 @@ class RoiPoolGradOp : public OpKernel {
                    context->GetAttr("spatial_scale", &spatial_scale_));
   }
 
-  void Compute(OpKernelContext* context) override 
+  void Compute(OpKernelContext* context) override
+  {
+    // Grab the input tensor
+    const Tensor& bottom_data = context->input(0);
+    const Tensor& bottom_rois = context->input(1);
+    const Tensor& argmax_data = context->input(2);
+    const Tensor& out_backprop = context->input(3);
+
+    auto bottom_data_flat = bottom_data.flat<T>();
+    auto bottom_rois_flat = bottom_rois.flat<T>();
+    auto argmax_data_flat = argmax_data.flat<int32>();
+    auto out_backprop_flat = out_backprop.flat<T>();
+
+    // data should have 4 dimensions.
+    OP_REQUIRES(context, bottom_data.dims() == 4,
+                errors::InvalidArgument("data must be 4-dimensional"));
+
+    // rois should have 2 dimensions.
+    OP_REQUIRES(context, bottom_rois.dims() == 2,
+                errors::InvalidArgument("rois must be 2-dimensional"));
+
+    OP_REQUIRES(context, argmax_data.dims() == 4,
+                errors::InvalidArgument("argmax_data must be 4-dimensional"));
+
+    OP_REQUIRES(context, out_backprop.dims() == 4,
+                errors::InvalidArgument("out_backprop must be 4-dimensional"));
+
+    // Number of ROIs
+    int num_rois = bottom_rois.dim_size(0);
+    // batch size
+    int batch_size = bottom_data.dim_size(0);
+    // data height
+    int data_height = bottom_data.dim_size(1);
+    // data width
+    int data_width = bottom_data.dim_size(2);
+    // Number of channels
+    int num_channels = bottom_data.dim_size(3);
+
+    // construct the output shape
+    TensorShape output_shape = bottom_data.shape();
+
+    // Create output tensors
+    Tensor* output_tensor = NULL;
+    OP_REQUIRES_OK(context, context->allocate_output(0, output_shape, &output_tensor));
+    auto output = output_tensor->template flat<T>();
+
+    int pooled_height = pooled_height_;
+    int pooled_width = pooled_width_;
+    float spatial_scale = spatial_scale_;
+
+    auto shard = [pooled_height, pooled_width, spatial_scale,
+                  num_rois, batch_size, data_height, data_width, num_channels,
+                  &bottom_data_flat, &bottom_rois_flat, &argmax_data_flat,
+                  &out_backprop_flat, &output](int64 start, int64 limit) {
+      for (int64 b = start; b < limit; ++b)
+      {
+        // (n, h, w, c) coords in bottom data
+        int n = b;
+        int c = n % num_channels;
+        n /= num_channels;
+        int w = n % data_width;
+        n /= data_width;
+        int h = n % data_height;
+        n /= data_height;
+
+        float gradient = 0.0;
+        // Accumulate gradient over all ROIs that pooled this element
+        for (int roi_n = 0; roi_n < num_rois; ++roi_n)
+        {
+          const float* offset_bottom_rois = bottom_rois_flat.data() + roi_n * 5;
+          int roi_batch_ind = offset_bottom_rois[0];
+          // Skip if ROI's batch index doesn't match n
+          if (n != roi_batch_ind) {
+            continue;
+          }
+
+          int roi_start_w = round(offset_bottom_rois[1] * spatial_scale);
+          int roi_start_h = round(offset_bottom_rois[2] * spatial_scale);
+          int roi_end_w = round(offset_bottom_rois[3] * spatial_scale);
+          int roi_end_h = round(offset_bottom_rois[4] * spatial_scale);
+
+          // Skip if ROI doesn't include (h, w)
+          const bool in_roi = (w >= roi_start_w && w <= roi_end_w &&
+                               h >= roi_start_h && h <= roi_end_h);
+          if (!in_roi) {
+            continue;
+          }
+
+          int offset = roi_n * pooled_height * pooled_width * num_channels;
+          const float* offset_top_diff = out_backprop_flat.data() + offset;
+          const int* offset_argmax_data = argmax_data_flat.data() + offset;
+
+          // Compute feasible set of pooled units that could have pooled
+          // this bottom unit
+
+          // Force malformed ROIs to be 1x1
+          int roi_width = std::max(roi_end_w - roi_start_w + 1, 1);
+          int roi_height = std::max(roi_end_h - roi_start_h + 1, 1);
+
+          const T bin_size_h = static_cast<T>(roi_height)
+                             / static_cast<T>(pooled_height);
+          const T bin_size_w = static_cast<T>(roi_width)
+                             / static_cast<T>(pooled_width);
+
+          int phstart = floor(static_cast<int>(h - roi_start_h) / bin_size_h);
+          int phend = ceil(static_cast<int>(h - roi_start_h + 1) / bin_size_h);
+          int pwstart = floor(static_cast<int>(w - roi_start_w) / bin_size_w);
+          int pwend = ceil(static_cast<int>(w - roi_start_w + 1) / bin_size_w);
+
+          phstart = std::min(std::max(phstart, 0), pooled_height);
+          phend = std::min(std::max(phend, 0), pooled_height);
+          pwstart = std::min(std::max(pwstart, 0), pooled_width);
+          pwend = std::min(std::max(pwend, 0), pooled_width);
+
+          for (int ph = phstart; ph < phend; ++ph) {
+            for (int pw = pwstart; pw < pwend; ++pw) {
+              if (offset_argmax_data[(ph * pooled_width + pw) * num_channels + c] == (h * data_width + w) * num_channels + c)
+              {
+                gradient += offset_top_diff[(ph * pooled_width + pw) * num_channels + c];
+              }
+            }
+          }
+        }
+        output(b) = gradient;
+      }
+    };
+
+    const DeviceBase::CpuWorkerThreads& worker_threads =
+        *(context->device()->tensorflow_cpu_worker_threads());
+    const int64 shard_cost =
+        num_rois * num_channels * pooled_height * pooled_width * spatial_scale;
+    Shard(worker_threads.num_threads, worker_threads.workers,
+          output.size(), shard_cost, shard);
+  }
+ private:
+  int pooled_height_;
+  int pooled_width_;
+  float spatial_scale_;
+};
+
+bool ROIPoolBackwardLaucher(const float* top_diff, const float spatial_scale, const int batch_size, const int num_rois,
+    const int height, const int width, const int channels, const int pooled_height,
+    const int pooled_width, const float* bottom_rois,
+    float* bottom_diff, const int* argmax_data, const Eigen::GpuDevice& d);
+
+static void RoiPoolingGradKernel(
+    OpKernelContext* context, const Tensor* bottom_data, const Tensor* bottom_rois, const Tensor* argmax_data, const Tensor* out_backprop,
+    const float spatial_scale, const int batch_size, const int num_rois, const int height,
+    const int width, const int channels, const int pooled_height,
+    const int pooled_width, const TensorShape& tensor_output_shape)
+{
+  Tensor* output = nullptr;
+  OP_REQUIRES_OK(context, context->allocate_output(0, tensor_output_shape, &output));
+
+  if (!context->status().ok()) {
+    return;
+  }
+
+  ROIPoolBackwardLaucher(
+    out_backprop->flat<float>().data(), spatial_scale, batch_size, num_rois, height,
+    width, channels, pooled_height, pooled_width, bottom_rois->flat<float>().data(),
+    output->flat<float>().data(), argmax_data->flat<int>().data(), context->eigen_device<Eigen::GpuDevice>());
+}
+
+
+template <class T>
+class RoiPoolGradOp<Eigen::GpuDevice, T> : public OpKernel {
+ public:
+  explicit RoiPoolGradOp(OpKernelConstruction* context) : OpKernel(context) {
+
+    // Get the pool height
+    OP_REQUIRES_OK(context,
+                   context->GetAttr("pooled_height", &pooled_height_));
+    // Check that pooled_height is positive
+    OP_REQUIRES(context, pooled_height_ >= 0,
+                errors::InvalidArgument("Need pooled_height >= 0, got ",
+                                        pooled_height_));
+    // Get the pool width
+    OP_REQUIRES_OK(context,
+                   context->GetAttr("pooled_width", &pooled_width_));
+    // Check that pooled_width is positive
+    OP_REQUIRES(context, pooled_width_ >= 0,
+                errors::InvalidArgument("Need pooled_width >= 0, got ",
+                                        pooled_width_));
+    // Get the spatial scale
+    OP_REQUIRES_OK(context,
+                   context->GetAttr("spatial_scale", &spatial_scale_));
+  }
+
+  void Compute(OpKernelContext* context) override
   {
     // Grab the input tensor
     const Tensor& bottom_data = context->input(0);
@@ -405,4 +553,9 @@ class RoiPoolGradOp : public OpKernel {
   float spatial_scale_;
 };
 
+REGISTER_KERNEL_BUILDER(Name("RoiPool").Device(DEVICE_CPU).TypeConstraint<float>("T"), RoiPoolOp<CPUDevice, float>);
+REGISTER_KERNEL_BUILDER(Name("RoiPoolGrad").Device(DEVICE_CPU).TypeConstraint<float>("T"), RoiPoolGradOp<CPUDevice, float>);
+#if GOOGLE_CUDA
+REGISTER_KERNEL_BUILDER(Name("RoiPool").Device(DEVICE_GPU).TypeConstraint<float>("T"), RoiPoolOp<Eigen::GpuDevice, float>);
 REGISTER_KERNEL_BUILDER(Name("RoiPoolGrad").Device(DEVICE_GPU).TypeConstraint<float>("T"), RoiPoolGradOp<Eigen::GpuDevice, float>);
+#endif
