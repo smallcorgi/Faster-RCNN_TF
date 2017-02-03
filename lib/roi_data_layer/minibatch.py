@@ -93,7 +93,7 @@ def _sample_rois(roidb, fg_rois_per_image, rois_per_image, num_classes):
     fg_inds = np.where(overlaps >= cfg.TRAIN.FG_THRESH)[0]
     # Guard against the case when an image has fewer than fg_rois_per_image
     # foreground RoIs
-    fg_rois_per_this_image = np.minimum(fg_rois_per_image, fg_inds.size)
+    fg_rois_per_this_image = int(np.minimum(fg_rois_per_image, fg_inds.size))
     # Sample foreground regions without replacement
     if fg_inds.size > 0:
         fg_inds = npr.choice(
@@ -165,7 +165,7 @@ def _get_bbox_regression_labels(bbox_target_data, num_classes):
         bbox_target_data (ndarray): N x 4K blob of regression targets
         bbox_inside_weights (ndarray): N x 4K blob of loss weights
     """
-    clss = bbox_target_data[:, 0]
+    clss = np.array(bbox_target_data[:, 0], dtype=np.uint16, copy=True)
     bbox_targets = np.zeros((clss.size, 4 * num_classes), dtype=np.float32)
     bbox_inside_weights = np.zeros(bbox_targets.shape, dtype=np.float32)
     inds = np.where(clss > 0)[0]
