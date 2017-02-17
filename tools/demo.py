@@ -113,8 +113,9 @@ if __name__ == '__main__':
     # load network
     net = get_network(args.demo_net)
     # load model
-    saver = tf.train.Saver()
+    saver = tf.train.Saver(write_version=tf.train.SaverDef.V1)
     saver.restore(sess, args.model)
+   
     #sess.run(tf.initialize_all_variables())
 
     print '\n\nLoaded network {:s}'.format(args.model)
