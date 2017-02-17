@@ -25,7 +25,7 @@ class SolverWrapper(object):
     use to unnormalize the learned bounding-box regression weights.
     """
 
-    def __init__(self, sess, network, imdb, roidb, output_dir, pretrained_model=None):
+    def __init__(self, sess, saver, network, imdb, roidb, output_dir, pretrained_model=None):
         """Initialize the SolverWrapper."""
         self.net = network
         self.imdb = imdb
@@ -39,7 +39,7 @@ class SolverWrapper(object):
         print 'done'
 
         # For checkpoint
-        self.saver = tf.train.Saver(max_to_keep=100)
+        self.saver = saver
 
     def snapshot(self, sess, iter):
         """Take a snapshot of the network after unnormalizing the learned
@@ -152,7 +152,7 @@ class SolverWrapper(object):
         if self.pretrained_model is not None:
             print ('Loading pretrained model '
                    'weights from {:s}').format(self.pretrained_model)
-            self.net.load(self.pretrained_model, sess, True)
+            self.net.load(self.pretrained_model, sess, self.saver, True)
 
         last_snapshot_iter = -1
         timer = Timer()
@@ -232,9 +232,9 @@ def get_data_layer(roidb, num_classes):
 
 def train_net(network, imdb, roidb, output_dir, pretrained_model=None, max_iters=40000):
     """Train a Fast R-CNN network."""
-
+    saver = tf.train.Saver(max_to_keep=20)
     with tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:
-        sw = SolverWrapper(sess, network, imdb, roidb, output_dir, pretrained_model=pretrained_model)
+        sw = SolverWrapper(sess, saver, network, imdb, roidb, output_dir, pretrained_model=pretrained_model)
         print 'Solving...'
         sw.train_model(sess, max_iters)
         print 'done solving'
