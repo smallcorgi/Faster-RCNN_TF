@@ -150,10 +150,10 @@ class RoiPoolOp : public OpKernel {
         const T bin_size_w = static_cast<T>(roi_width)
                            / static_cast<T>(pooled_width);
 
-        int hstart = floor(static_cast<int>(ph * bin_size_h));
-        int wstart = floor(static_cast<int>(pw * bin_size_w));
-        int hend = ceil(static_cast<int>((ph + 1) * bin_size_h));
-        int wend = ceil(static_cast<int>((pw + 1) * bin_size_w));
+        int hstart = static_cast<int>(floor(ph * bin_size_h));
+        int wstart = static_cast<int>(floor(pw * bin_size_w));
+        int hend = static_cast<int>(ceil((ph + 1) * bin_size_h));
+        int wend = static_cast<int>(ceil((pw + 1) * bin_size_w));
 
         // Add roi offsets and clip to input boundaries
         hstart = std::min(std::max(hstart + roi_start_h, 0), data_height);
