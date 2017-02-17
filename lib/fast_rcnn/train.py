@@ -148,7 +148,7 @@ class SolverWrapper(object):
         train_op = tf.train.MomentumOptimizer(lr, momentum).minimize(loss, global_step=global_step)
 
         # iintialize variables
-        sess.run(tf.initialize_all_variables())
+        sess.run(tf.global_variables_initializer())
         if self.pretrained_model is not None:
             print ('Loading pretrained model '
                    'weights from {:s}').format(self.pretrained_model)
@@ -229,10 +229,35 @@ def get_data_layer(roidb, num_classes):
 
     return layer
 
+def filter_roidb(roidb):
+    """Remove roidb entries that have no usable RoIs."""
+
+    def is_valid(entry):
+        # Valid images have:
+        #   (1) At least one foreground RoI OR
+        #   (2) At least one background RoI
+        overlaps = entry['max_overlaps']
+        # find boxes with sufficient overlap
+        fg_inds = np.where(overlaps >= cfg.TRAIN.FG_THRESH)[0]
+        # Select background RoIs as those within [BG_THRESH_LO, BG_THRESH_HI)
+        bg_inds = np.where((overlaps < cfg.TRAIN.BG_THRESH_HI) &
+                           (overlaps >= cfg.TRAIN.BG_THRESH_LO))[0]
+        # image is only valid if such boxes exist
+        valid = len(fg_inds) > 0 or len(bg_inds) > 0
+        return valid
+
+    num = len(roidb)
+    filtered_roidb = [entry for entry in roidb if is_valid(entry)]
+    num_after = len(filtered_roidb)
+    print 'Filtered {} roidb entries: {} -> {}'.format(num - num_after,
+                                                       num, num_after)
+    return filtered_roidb
+
 
 def train_net(network, imdb, roidb, output_dir, pretrained_model=None, max_iters=40000):
     """Train a Fast R-CNN network."""
-    saver = tf.train.Saver(max_to_keep=20)
+    roidb = filter_roidb(roidb)
+    saver = tf.train.Saver(max_to_keep=100)
     with tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:
         sw = SolverWrapper(sess, saver, network, imdb, roidb, output_dir, pretrained_model=pretrained_model)
         print 'Solving...'
