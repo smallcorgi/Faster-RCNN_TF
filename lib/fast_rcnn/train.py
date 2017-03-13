@@ -122,6 +122,7 @@ class SolverWrapper(object):
         rpn_smooth_l1 = self._modified_smooth_l1(3.0, rpn_bbox_pred, rpn_bbox_targets, rpn_bbox_inside_weights, rpn_bbox_outside_weights)
         rpn_loss_box = tf.multiply(tf.reduce_mean(tf.reduce_sum(rpn_smooth_l1, reduction_indices=[1, 2, 3])), 10)
  
+
         # R-CNN
         # classification loss
         cls_score = self.net.get_output('cls_score')
