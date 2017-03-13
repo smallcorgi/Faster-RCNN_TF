@@ -84,6 +84,61 @@ def demo(sess, net, image_name):
         dets = dets[keep, :]
         vis_detections(im, cls, dets, ax, thresh=CONF_THRESH)
 
+
+def video_demo(sess, net, video_path):
+    cap = cv2.VideoCapture(video_path)
+    # fourcc = cv2.cv.CV_FOURCC(*'XVID')
+    # out = cv2.VideoWriter('output.avi',fourcc, 20.0, (1280,720))
+    while cap.isOpened():
+        timer = Timer()
+        timer.tic()
+        ret, img = cap.read()
+        height, width = img.shape[:2]
+        frame = cv2.resize(img,(500,375),interpolation=cv2.INTER_CUBIC)
+        scores, boxes = im_detect(sess, net, frame)
+
+        CONF_THRESH = 0.8
+        NMS_THRESH = 0.3
+        for cls_ind, cls in enumerate(CLASSES[1:]):
+            cls_ind += 1 # because we skipped background
+            cls_boxes = boxes[:, 4*cls_ind:4*(cls_ind + 1)]
+            cls_scores = scores[:, cls_ind]
+            dets = np.hstack((cls_boxes,
+                            cls_scores[:, np.newaxis])).astype(np.float32)
+            keep = nms(dets, NMS_THRESH)
+            dets = dets[keep, :]
+            # vis_detections(im, cls, dets, ax, thresh=CONF_THRESH)
+            inds = np.where(dets[:, -1] >=CONF_THRESH)[0]
+            for i in inds:
+                bbox = dets[i, :4]
+                score = dets[i, -1]
+                bbox[0] = int(bbox[0]*1.0/500*width)
+                if bbox[0] >= width:
+                    bbox[0] = width-1
+                bbox[2] = int(bbox[2]*1.0/500*width)
+                if bbox[2] >= width:
+                    bbox[2] = width-1
+                bbox[1] = int(bbox[1]*1.0/375*height)
+                if bbox[1] >= height:
+                    bbox[1] = height-1
+                bbox[3] = int(bbox[3]*1.0/375*height)
+                if bbox[3] >= height:
+                    bbox[3] = height-1
+                cv2.rectangle(img,(bbox[0],bbox[1]),(bbox[2],bbox[3]),(0,255,0),3)
+                font = cv2.FONT_HERSHEY_SIMPLEX
+                cv2.putText(img,cls,(bbox[0],bbox[1]), font, 1,(255,0,0),1)
+        cv2.imshow('faster-rcnn', img)
+        # out.write(img)
+
+        if cv2.waitKey(1) & 0XFF == ord('q'):
+            break
+        timer.toc()
+        print 'detection time:',timer.total_time
+    cap.release()
+    cv2.destroyAllWindows()
+
+
+
 def parse_args():
     """Parse input arguments."""
     parser = argparse.ArgumentParser(description='Faster R-CNN demo')
@@ -96,6 +151,7 @@ def parse_args():
                         default='VGGnet_test')
     parser.add_argument('--model', dest='model', help='Model path',
                         default=' ')
+    parser.add_argument('--video', dest='video', help='Video path', default='')
 
     args = parser.parse_args()
 
@@ -107,7 +163,7 @@ if __name__ == '__main__':
 
     if args.model == ' ':
         raise IOError(('Error: Model not found.\n'))
-        
+
     # init session
     sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
     # load network
@@ -128,6 +184,8 @@ if __name__ == '__main__':
     im_names = ['000456.jpg', '000542.jpg', '001150.jpg',
                 '001763.jpg', '004545.jpg']
 
+    if args.video:
+        video_demo(sess, net, args.video)
 
     for im_name in im_names:
         print '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~'
@@ -135,4 +193,6 @@ if __name__ == '__main__':
         demo(sess, net, im_name)
 
     plt.show()
+
+
 
