@@ -87,15 +87,15 @@ class SolverWrapper(object):
         """
         sigma2 = sigma * sigma
 
-        inside_mul = tf.mul(bbox_inside_weights, tf.sub(bbox_pred, bbox_targets))
+        inside_mul = tf.multiply(bbox_inside_weights, tf.subtract(bbox_pred, bbox_targets))
 
         smooth_l1_sign = tf.cast(tf.less(tf.abs(inside_mul), 1.0 / sigma2), tf.float32)
-        smooth_l1_option1 = tf.mul(tf.mul(inside_mul, inside_mul), 0.5 * sigma2)
-        smooth_l1_option2 = tf.sub(tf.abs(inside_mul), 0.5 / sigma2)
-        smooth_l1_result = tf.add(tf.mul(smooth_l1_option1, smooth_l1_sign),
-                                  tf.mul(smooth_l1_option2, tf.abs(tf.sub(smooth_l1_sign, 1.0))))
+        smooth_l1_option1 = tf.multiply(tf.multiply(inside_mul, inside_mul), 0.5 * sigma2)
+        smooth_l1_option2 = tf.subtract(tf.abs(inside_mul), 0.5 / sigma2)
+        smooth_l1_result = tf.add(tf.multiply(smooth_l1_option1, smooth_l1_sign),
+                                  tf.multiply(smooth_l1_option2, tf.abs(tf.subtract(smooth_l1_sign, 1.0))))
 
-        outside_mul = tf.mul(bbox_outside_weights, smooth_l1_result)
+        outside_mul = tf.multiply(bbox_outside_weights, smooth_l1_result)
 
         return outside_mul
 
@@ -111,7 +111,7 @@ class SolverWrapper(object):
         rpn_label = tf.reshape(self.net.get_output('rpn-data')[0],[-1])
         rpn_cls_score = tf.reshape(tf.gather(rpn_cls_score,tf.where(tf.not_equal(rpn_label,-1))),[-1,2])
         rpn_label = tf.reshape(tf.gather(rpn_label,tf.where(tf.not_equal(rpn_label,-1))),[-1])
-        rpn_cross_entropy = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(rpn_cls_score, rpn_label))
+        rpn_cross_entropy = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=rpn_cls_score, labels=rpn_label))
 
         # bounding box regression L1 loss
         rpn_bbox_pred = self.net.get_output('rpn_bbox_pred')
@@ -126,7 +126,7 @@ class SolverWrapper(object):
         # classification loss
         cls_score = self.net.get_output('cls_score')
         label = tf.reshape(self.net.get_output('roi-data')[1],[-1])
-        cross_entropy = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(cls_score, label))
+        cross_entropy = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=cls_score, labels=label))
 
         # bounding box regression L1 loss
         bbox_pred = self.net.get_output('bbox_pred')
