@@ -98,7 +98,7 @@ if __name__ == '__main__':
     # start a session
     saver = tf.train.Saver()
     sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
-    saver.restore(sess, args.model)
-    print ('Loading model weights from {:s}').format(args.model)
+    saver.restore(sess, ckpt.model_checkpoint_path)
+    print ('Loading model weights from {:s}').format(ckpt.model_checkpoint_path)
 
     test_net(sess, network, imdb, weights_filename)
