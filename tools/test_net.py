@@ -67,14 +67,21 @@ if __name__ == '__main__':
     print('Using config:')
     pprint.pprint(cfg)
 
-    while not os.path.exists(args.model) and args.wait:
-        print('Waiting for {} to exist...'.format(args.model))
-        time.sleep(10)
-
     weights_filename = os.path.splitext(os.path.basename(args.model))[0]
 
     imdb = get_imdb(args.imdb_name)
     imdb.competition_mode(args.comp_mode)
+
+    # Find the checkpoint directory, or wait until it exists.
+    checkpoint_dir = os.path.dirname(args.model)
+    while True:
+        ckpt = tf.train.get_checkpoint_state(checkpoint_dir)
+        if ckpt and ckpt.model_checkpoint_path:
+            break
+        else:
+            print('Waiting for checkpoint in directory {} to exist...'.format(checkpoint_dir))
+            time.sleep(10)
+
 
     device_name = '/{}:{:d}'.format(args.device,args.device_id)
     print device_name
