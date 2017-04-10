@@ -1,0 +1,6 @@
+*.pyc
+*.so
+*.o
+output/*
+data/pretrian_model/*
+data/VOCdevkit2007/*
