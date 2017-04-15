@@ -21,7 +21,7 @@ import time
 
 class SolverWrapper(object):
     """A simple wrapper around Caffe's solver.
-    This wrapper gives us control over he snapshotting process, which we
+    This wrapper gives us control over the snapshotting process, which we
     use to unnormalize the learned bounding-box regression weights.
     """
 
