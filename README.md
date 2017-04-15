@@ -1,5 +1,5 @@
 # This repository
-The purpose of this repository is to make small improvements and bug fixes on smallcorgi's code https://github.com/smallcorgi/Faster-RCNN_TF.
+The purpose of this repository is to make small improvements and bug fixes on smallcorgi's code https://github.com/smallcorgi/Faster-RCNN_TF. It's likely to be obsolete soon, as other object detection libraries become available in Tensorflow.
 
 # Faster-RCNN_TF
 
