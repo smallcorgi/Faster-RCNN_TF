@@ -24,6 +24,7 @@ limitations under the License.
 #include "tensorflow/core/framework/tensor_shape.h"
 #include "work_sharder.h"
 
+
 using namespace tensorflow;
 typedef Eigen::ThreadPoolDevice CPUDevice;
 
@@ -214,11 +215,12 @@ static void RoiPoolingKernel(
   if (!context->status().ok()) {
     return;
   }
-
+#if GOOGLE_CUDA
   ROIPoolForwardLaucher(
     bottom_data->flat<float>().data(), spatial_scale, num_rois, height,
     width, channels, pooled_height, pooled_width, bottom_rois->flat<float>().data(),
     output->flat<float>().data(), argmax->flat<int>().data(), context->eigen_device<Eigen::GpuDevice>());
+#endif
 }
 
 template <class T>
@@ -473,11 +475,12 @@ static void RoiPoolingGradKernel(
   if (!context->status().ok()) {
     return;
   }
-
+#if GOOGLE_CUDA
   ROIPoolBackwardLaucher(
     out_backprop->flat<float>().data(), spatial_scale, batch_size, num_rois, height,
     width, channels, pooled_height, pooled_width, bottom_rois->flat<float>().data(),
     output->flat<float>().data(), argmax_data->flat<int>().data(), context->eigen_device<Eigen::GpuDevice>());
+#endif
 }
 
 
