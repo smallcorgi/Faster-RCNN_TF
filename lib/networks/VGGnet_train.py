@@ -5,11 +5,12 @@ from networks.network import Network
 #define
 
 n_classes = 26
+size_ae = 128
 _feat_stride = [16,]
 anchor_scales = [8, 16, 32]
 
 class VGGnet_train(Network):
-    def __init__(self, size_ae=0, trainable=True):
+    def __init__(self, trainable=True):
         self.inputs = []
         self.data = tf.placeholder(tf.float32, shape=[None, None, None, 3])
         self.im_info = tf.placeholder(tf.float32, shape=[None, 3])
@@ -17,7 +18,6 @@ class VGGnet_train(Network):
         self.keep_prob = tf.placeholder(tf.float32)
         self.layers = dict({'data':self.data, 'im_info':self.im_info, 'gt_boxes':self.gt_boxes})
         self.trainable = trainable
-        self.size_ae = size_ae
         self.setup()
 
         # create ops and placeholders for bbox normalization process
@@ -50,6 +50,7 @@ class VGGnet_train(Network):
              .conv(3, 3, 512, 1, 1, name='conv5_1')
              .conv(3, 3, 512, 1, 1, name='conv5_2')
              .conv(3, 3, 512, 1, 1, name='conv5_3'))
+
         #========= RPN ============
         (self.feed('conv5_3')
              .conv(3,3,512,1,1,name='rpn_conv/3x3')
@@ -82,22 +83,13 @@ class VGGnet_train(Network):
         (self.feed('conv5_3', 'roi-data')
              .roi_pool(7, 7, 1.0/16, name='pool_5')
              .fc(4096, name='fc6')
-             .dropout(0.5, name='drop6'))
-
-        if self.size_ae == 0:
-            (self.feed('fc6')
-                 .fc(4096, name='fc7')
-                 .dropout(0.5, name='drop7')
-                 .fc(n_classes, relu=False, name='cls_score')
-                 .softmax(name='cls_prob'))
-        else:
-            (self.feed('fc6')
-                 .fc(self.size_ae, name='fc6_ae')
-                 .dropout(0.5, name='drop6_ae')
-                 .fc(4096, name='fc7')
-                 .dropout(0.5, name='drop7')
-                 .fc(n_classes, relu=False, name='cls_score')
-                 .softmax(name='cls_prob'))
+             .dropout(0.5, name='drop6')
+             .fc(size_ae, relu=False, name='fc6_ae')
+             .dropout(0.5, name='drop6_ae')
+             .fc(4096, name='fc7')
+             .dropout(0.5, name='drop7')
+             .fc(n_classes, relu=False, name='cls_score')
+             .softmax(name='cls_prob'))
 
 
         (self.feed('drop7')

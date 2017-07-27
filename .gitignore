@@ -1,4 +1,5 @@
 *.pyc
 *.so
 *.o
+*.idea
 faster_rcnn_models
