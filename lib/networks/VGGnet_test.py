@@ -1,7 +1,9 @@
 import tensorflow as tf
 from networks.network import Network
 
-n_classes = 21
+n_classes = 26
+size_ae = 128
+
 _feat_stride = [16,]
 anchor_scales = [8, 16, 32] 
 
@@ -17,11 +19,11 @@ class VGGnet_test(Network):
 
     def setup(self):
         (self.feed('data')
-             .conv(3, 3, 64, 1, 1, name='conv1_1', trainable=False)
-             .conv(3, 3, 64, 1, 1, name='conv1_2', trainable=False)
+             .conv(3, 3, 64, 1, 1, name='conv1_1', trainable=True)
+             .conv(3, 3, 64, 1, 1, name='conv1_2', trainable=True)
              .max_pool(2, 2, 2, 2, padding='VALID', name='pool1')
-             .conv(3, 3, 128, 1, 1, name='conv2_1', trainable=False)
-             .conv(3, 3, 128, 1, 1, name='conv2_2', trainable=False)
+             .conv(3, 3, 128, 1, 1, name='conv2_1', trainable=True)
+             .conv(3, 3, 128, 1, 1, name='conv2_2', trainable=True)
              .max_pool(2, 2, 2, 2, padding='VALID', name='pool2')
              .conv(3, 3, 256, 1, 1, name='conv3_1')
              .conv(3, 3, 256, 1, 1, name='conv3_2')
@@ -51,10 +53,11 @@ class VGGnet_test(Network):
 
         (self.feed('rpn_cls_prob_reshape','rpn_bbox_pred','im_info')
              .proposal_layer(_feat_stride, anchor_scales, 'TEST', name = 'rois'))
-        
+
         (self.feed('conv5_3', 'rois')
              .roi_pool(7, 7, 1.0/16, name='pool_5')
              .fc(4096, name='fc6')
+             .fc(size_ae, relu=False, name='fc6_ae')
              .fc(4096, name='fc7')
              .fc(n_classes, relu=False, name='cls_score')
              .softmax(name='cls_prob'))

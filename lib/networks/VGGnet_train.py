@@ -4,7 +4,8 @@ from networks.network import Network
 
 #define
 
-n_classes = 21
+n_classes = 26
+size_ae = 128
 _feat_stride = [16,]
 anchor_scales = [8, 16, 32]
 
@@ -32,11 +33,11 @@ class VGGnet_train(Network):
 
     def setup(self):
         (self.feed('data')
-             .conv(3, 3, 64, 1, 1, name='conv1_1', trainable=False)
-             .conv(3, 3, 64, 1, 1, name='conv1_2', trainable=False)
+             .conv(3, 3, 64, 1, 1, name='conv1_1', trainable=True)
+             .conv(3, 3, 64, 1, 1, name='conv1_2', trainable=True)
              .max_pool(2, 2, 2, 2, padding='VALID', name='pool1')
-             .conv(3, 3, 128, 1, 1, name='conv2_1', trainable=False)
-             .conv(3, 3, 128, 1, 1, name='conv2_2', trainable=False)
+             .conv(3, 3, 128, 1, 1, name='conv2_1', trainable=True)
+             .conv(3, 3, 128, 1, 1, name='conv2_2', trainable=True)
              .max_pool(2, 2, 2, 2, padding='VALID', name='pool2')
              .conv(3, 3, 256, 1, 1, name='conv3_1')
              .conv(3, 3, 256, 1, 1, name='conv3_2')
@@ -49,6 +50,7 @@ class VGGnet_train(Network):
              .conv(3, 3, 512, 1, 1, name='conv5_1')
              .conv(3, 3, 512, 1, 1, name='conv5_2')
              .conv(3, 3, 512, 1, 1, name='conv5_3'))
+
         #========= RPN ============
         (self.feed('conv5_3')
              .conv(3,3,512,1,1,name='rpn_conv/3x3')
@@ -82,10 +84,13 @@ class VGGnet_train(Network):
              .roi_pool(7, 7, 1.0/16, name='pool_5')
              .fc(4096, name='fc6')
              .dropout(0.5, name='drop6')
+             .fc(size_ae, relu=False, name='fc6_ae')
+             .dropout(0.5, name='drop6_ae')
              .fc(4096, name='fc7')
              .dropout(0.5, name='drop7')
              .fc(n_classes, relu=False, name='cls_score')
              .softmax(name='cls_prob'))
+
 
         (self.feed('drop7')
              .fc(n_classes*4, relu=False, name='bbox_pred'))
