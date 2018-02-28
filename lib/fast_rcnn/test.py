@@ -320,6 +320,7 @@ def test_net(sess, net, imdb, weights_filename , max_per_image=300, thresh=0.05,
             if vis:
                 vis_detections(image, imdb.classes[j], cls_dets)
             all_boxes[j][i] = cls_dets
+            #the cls_dets(including the kept classes' coordinates and scores) put into a class of a image
         if vis:
            plt.show()
         # Limit to max_per_image detections *over all classes*
