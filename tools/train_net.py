@@ -83,6 +83,7 @@ if __name__ == '__main__':
     roidb = get_training_roidb(imdb)
 
     output_dir = get_output_dir(imdb, None)
+    #
     print 'Output will be saved to `{:s}`'.format(output_dir)
 
     device_name = '/{}:{:d}'.format(args.device,args.device_id)
