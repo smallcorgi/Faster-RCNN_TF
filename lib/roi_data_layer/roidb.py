@@ -47,13 +47,14 @@ def add_bbox_regression_targets(roidb):
     """Add information needed to train bounding-box regressors."""
     assert len(roidb) > 0
     assert 'max_classes' in roidb[0], 'Did you call prepare_roidb first?'
-
+    
     num_images = len(roidb)
     # Infer number of classes from the number of columns in gt_overlaps
     num_classes = roidb[0]['gt_overlaps'].shape[1]
     for im_i in xrange(num_images):
         rois = roidb[im_i]['boxes']
         max_overlaps = roidb[im_i]['max_overlaps']
+        #
         max_classes = roidb[im_i]['max_classes']
         roidb[im_i]['bbox_targets'] = \
                 _compute_targets(rois, max_overlaps, max_classes)
