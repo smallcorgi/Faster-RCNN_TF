@@ -1,6 +1,6 @@
 import tensorflow as tf
 from tensorflow.python.framework import ops
-import roi_pooling_op
+import roi_pooling_layer.roi_pooling_op
 import pdb
 
 
