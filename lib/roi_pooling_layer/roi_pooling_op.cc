@@ -194,6 +194,7 @@ class RoiPoolOp : public OpKernel {
   float spatial_scale_;
 };
 
+#if GOOGLE_CUDA
 bool ROIPoolForwardLaucher(
     const float* bottom_data, const float spatial_scale, const int num_rois, const int height,
     const int width, const int channels, const int pooled_height,
@@ -290,6 +291,7 @@ class RoiPoolOp<Eigen::GpuDevice, T> : public OpKernel {
   int pooled_width_;
   float spatial_scale_;
 };
+#endif
 
 // compute gradient
 template <class Device, class T>
@@ -456,6 +458,7 @@ class RoiPoolGradOp : public OpKernel {
   float spatial_scale_;
 };
 
+#if GOOGLE_CUDA
 bool ROIPoolBackwardLaucher(const float* top_diff, const float spatial_scale, const int batch_size, const int num_rois,
     const int height, const int width, const int channels, const int pooled_height,
     const int pooled_width, const float* bottom_rois,
@@ -479,7 +482,6 @@ static void RoiPoolingGradKernel(
     width, channels, pooled_height, pooled_width, bottom_rois->flat<float>().data(),
     output->flat<float>().data(), argmax_data->flat<int>().data(), context->eigen_device<Eigen::GpuDevice>());
 }
-
 
 template <class T>
 class RoiPoolGradOp<Eigen::GpuDevice, T> : public OpKernel {
@@ -552,6 +554,7 @@ class RoiPoolGradOp<Eigen::GpuDevice, T> : public OpKernel {
   int pooled_width_;
   float spatial_scale_;
 };
+#endif
 
 REGISTER_KERNEL_BUILDER(Name("RoiPool").Device(DEVICE_CPU).TypeConstraint<float>("T"), RoiPoolOp<CPUDevice, float>);
 REGISTER_KERNEL_BUILDER(Name("RoiPoolGrad").Device(DEVICE_CPU).TypeConstraint<float>("T"), RoiPoolGradOp<CPUDevice, float>);
