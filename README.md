@@ -32,7 +32,7 @@ For details about R-CNN please refer to the paper [Faster R-CNN: Towards Real-Ti
 
 *After successfully completing [basic installation](#installation-sufficient-for-the-demo)*, you'll be ready to run the demo.
 
-Download model training on PASCAL VOC 2007  [[Google Drive]](https://drive.google.com/open?id=0ByuDEGFYmWsbZ0EzeUlHcGFIVWM) [[Dropbox]](https://www.dropbox.com/s/cfz3blmtmwj6bdh/VGGnet_fast_rcnn_iter_70000.ckpt?dl=0)
+Download model training on PASCAL VOC 2007  [[Google Drive]](https://drive.google.com/file/d/0ByuDEGFYmWsbZ0EzeUlHcGFIVWM/view?usp=sharing&resourcekey=0-wl5NWArb595zL-BX6ctTgQ) [[Dropbox]](https://www.dropbox.com/s/cfz3blmtmwj6bdh/VGGnet_fast_rcnn_iter_70000.ckpt?dl=0)
 
 To run the demo
 ```Shell
