@@ -76,7 +76,7 @@ The demo performs detection using a VGG16 network trained for detection on PASCA
     
 5. Download pre-trained ImageNet models
 
-   Download the pre-trained ImageNet models [[Google Drive]](https://drive.google.com/open?id=0ByuDEGFYmWsbNVF5eExySUtMZmM) [[Dropbox]](https://www.dropbox.com/s/po2kzdhdgl4ix55/VGG_imagenet.npy?dl=0)
+   Download the pre-trained ImageNet models [[Google Drive]](https://drive.google.com/file/d/0ByuDEGFYmWsbNVF5eExySUtMZmM/view?usp=sharing&resourcekey=0-bxxPp_3P3tc-6Ca7sPrLsw) [[Dropbox]](https://www.dropbox.com/s/po2kzdhdgl4ix55/VGG_imagenet.npy?dl=0)
    
    	```Shell
     mv VGG_imagenet.npy $FRCN_ROOT/data/pretrain_model/VGG_imagenet.npy
