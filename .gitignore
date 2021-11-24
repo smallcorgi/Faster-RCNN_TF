@@ -2,3 +2,7 @@
 *.so
 *.o
 faster_rcnn_models
+/data/VOCdevkit2007
+data/cache/
+data/pretrain_model/
+output/
