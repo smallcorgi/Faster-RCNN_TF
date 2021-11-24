@@ -219,15 +219,8 @@ def get_training_roidb(imdb):
 
 def get_data_layer(roidb, num_classes):
     """return a data layer."""
-    if cfg.TRAIN.HAS_RPN:
-        if cfg.IS_MULTISCALE:
-            layer = GtDataLayer(roidb)
-        else:
-            layer = RoIDataLayer(roidb, num_classes)
-    else:
-        layer = RoIDataLayer(roidb, num_classes)
-
-    return layer
+    assert not (cfg.TRAIN.HAS_RPN and cfg.IS_MULTISCALE), 'Multiscale mode is unimplemented with using RPN'
+    return RoIDataLayer(roidb, num_classes)
 
 def filter_roidb(roidb):
     """Remove roidb entries that have no usable RoIs."""
