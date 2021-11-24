@@ -34,4 +34,4 @@ def get_network(name):
 
 def list_networks():
     """List all registered imdbs."""
-    return list(__sets.keys())
+    return __sets.keys()
